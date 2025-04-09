@@ -6,6 +6,7 @@ import Stats from "../components/Stats";
 import Footer from "../components/Footer";
 import { Button } from "../components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   return (
@@ -45,7 +46,7 @@ const Index = () => {
                 
                 <h3 className="text-2xl font-bold mb-4">Renewable Energy Lab Success</h3>
                 <p className="text-lg mb-6 text-muted-foreground">
-                  "Thanks to the funding we received through WolloFund, we were able to establish a state-of-the-art renewable energy lab that has already produced two patentable innovations. This would not have been possible without the community's support."
+                  "Thanks to the funding we received through AbrenFund, we were able to establish a state-of-the-art renewable energy lab that has already produced two patentable innovations. This would not have been possible without the community's support."
                 </p>
                 
                 <div>
@@ -56,10 +57,12 @@ const Index = () => {
             </div>
             
             <div className="mt-10 text-center">
+            <Link to="/success-stories">
               <Button variant="link" className="group">
                 Read more success stories
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
+              </Link>
             </div>
           </div>
         </section>
@@ -91,9 +94,11 @@ const Index = () => {
             </div>
             
             <div className="mt-10 text-center">
+            <Link to="/explore">
               <Button variant="outline">
                 View All Categories
               </Button>
+              </Link>
             </div>
           </div>
         </section>
