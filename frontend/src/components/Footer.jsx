@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Twitter, Instagram, Youtube, Mail } from "lucide-react";
+import { Facebook, Twitter, Instagram, Youtube, Mail, Leaf } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -9,8 +9,9 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
-            <Link to="/" className="inline-block mb-4">
-              <span className="text-2xl font-display font-bold text-white">WolloFund</span>
+          <Link to="/" className="inline-flex items-center mb-4">
+              <Leaf className="h-6 w-6 text-white mr-2" />
+              <span className="text-2xl font-display font-bold text-white">AbrenFund</span>
             </Link>
             <p className="text-muted-foreground mb-6">
               Empowering innovation and impact through community-driven funding.
@@ -113,7 +114,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-muted/20 mt-12 pt-6 text-center text-primary-foreground/50 text-sm">
-          <p>© {new Date().getFullYear()} WolloFund. All rights reserved. A project of Wollo University.</p>
+          <p>© {new Date().getFullYear()} AbrenFund. All rights reserved.</p>
         </div>
       </div>
     </footer>

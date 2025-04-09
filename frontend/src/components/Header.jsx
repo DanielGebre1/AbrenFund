@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
-import { Menu, X, Search } from "lucide-react";
+import { Menu, X, Search,Leaf } from "lucide-react";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,8 +15,9 @@ const Header = () => {
       <div className="container mx-auto px-4 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          <span className="text-2xl font-display font-bold text-primary">WolloFund</span>
-        </Link>
+        <Leaf className="h-6 w-6 text-primary mr-2" />
+          <span className="text-2xl font-display font-bold text-primary">AbrenFund</span>
+              </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
@@ -32,9 +33,9 @@ const Header = () => {
             <Search className="h-4 w-4 mr-2" />
             Search
           </Button>
-          <Button variant="outline" size="sm">Login</Button>
-          <Button size="sm">Start a Campaign</Button>
-        </div>
+          <Link to="/login"><Button variant="outline" size="sm">Login</Button></Link>
+          <Link to="/signup"><Button size="sm">Sign Up</Button></Link>
+       </div>
 
         {/* Mobile Menu Button */}
         <button 
@@ -63,9 +64,9 @@ const Header = () => {
             <Link to="/how-it-works" className="py-3 text-foreground hover:text-primary font-medium" onClick={toggleMenu}>How It Works</Link>
             <Link to="/about" className="py-3 text-foreground hover:text-primary font-medium" onClick={toggleMenu}>About</Link>
             <div className="flex flex-col space-y-3 pt-3 border-t">
-              <Button variant="outline">Login</Button>
-              <Button>Start a Campaign</Button>
-            </div>
+            <Link to="/login"><Button variant="outline">Login</Button></Link>
+              <Link to="/signup"><Button>Sign Up</Button></Link>
+           </div>
           </div>
         </div>
       )}
