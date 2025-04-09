@@ -1,5 +1,6 @@
 import { Button } from "./ui/button";
 import { DollarSign, Users, Briefcase, Award } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const stats = [
   {
@@ -62,9 +63,11 @@ const Stats = () => {
             <Button size="lg" className="bg-white text-primary hover:bg-white/90">
               Start a Campaign
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-              Support a Project
-            </Button>
+            <Link to="/explore">
+              <Button size="lg" variant="outline" className="border-white text-white bg-transparent hover:bg-white/10">
+                Support a Project
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
