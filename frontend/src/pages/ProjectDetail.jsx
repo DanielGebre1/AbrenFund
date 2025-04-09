@@ -1,23 +1,29 @@
-import { useParams } from "react-router-dom";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import { useParams, Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Progress } from "../components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Card, CardContent } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
 import { 
-  Clock, 
+  ArrowRight, 
+  Calendar, 
   Users, 
-  Share2, 
+  Clock, 
   Heart, 
-  AlertCircle, 
-  MessageCircle, 
+  Share2, 
+  Flag, 
+  BookOpen, 
+  MessagesSquare,
   Bookmark,
   Info,
+  MessageCircle,
   User,
-  ArrowRight
+  AlertCircle
 } from "lucide-react";
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
-// Sample project data - in a real app, this would come from an API based on the ID
 const projects = [
   {
     id: "1",
@@ -102,8 +108,7 @@ const projects = [
 const ProjectDetail = () => {
   const { id } = useParams();
   
-  // Find the project based on id
-  const project = projects.find(p => p.id === id) || projects[0]; // Fallback to first project for demo
+  const project = projects.find(p => p.id === id) || projects[0];
   
   const progress = Math.min(Math.round((project.raisedAmount / project.goalAmount) * 100), 100);
   
@@ -112,11 +117,9 @@ const ProjectDetail = () => {
       <Header />
       
       <main className="flex-grow">
-        {/* Project Header */}
         <section className="py-8 bg-gradient-to-b from-primary/5 to-background">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row gap-8">
-              {/* Project Image */}
               <div className="md:w-7/12">
                 <div className="rounded-xl overflow-hidden shadow-soft">
                   <img 
@@ -127,7 +130,6 @@ const ProjectDetail = () => {
                 </div>
               </div>
               
-              {/* Project Info */}
               <div className="md:w-5/12">
                 <div className="bg-white p-6 rounded-xl shadow-soft h-full flex flex-col">
                   <div className="mb-4">
@@ -182,7 +184,11 @@ const ProjectDetail = () => {
                     </div>
                     
                     <div className="space-y-3">
-                      <Button className="w-full">Back This Project</Button>
+                      <Link to={`/payment/${id}`} className="w-full">
+                        <Button size="lg" className="w-full mt-6">
+                          Back This Project <ArrowRight className="ml-2" size={18} />
+                        </Button>
+                      </Link>
                       <div className="flex space-x-2">
                         <Button variant="outline" size="icon" className="flex-1">
                           <Heart className="h-5 w-5" />
@@ -202,11 +208,9 @@ const ProjectDetail = () => {
           </div>
         </section>
         
-        {/* Project Content */}
         <section className="py-10">
           <div className="container mx-auto px-4">
             <div className="flex flex-col lg:flex-row gap-8">
-              {/* Main Content */}
               <div className="lg:w-7/12">
                 <Tabs defaultValue="story" className="mb-12">
                   <TabsList className="w-full mb-6">
@@ -302,9 +306,7 @@ const ProjectDetail = () => {
                 </Tabs>
               </div>
               
-              {/* Sidebar */}
               <div className="lg:w-5/12">
-                {/* Creator Info */}
                 <div className="bg-white p-6 rounded-xl shadow-soft mb-6">
                   <h3 className="text-xl font-bold mb-4">About the Creator</h3>
                   <div className="flex items-center mb-4">
@@ -327,7 +329,6 @@ const ProjectDetail = () => {
                   </Button>
                 </div>
                 
-                {/* Rewards */}
                 <div className="bg-white p-6 rounded-xl shadow-soft mb-6">
                   <h3 className="text-xl font-bold mb-4">Select a Reward</h3>
                   <div className="space-y-4">
@@ -374,7 +375,6 @@ const ProjectDetail = () => {
                   </div>
                 </div>
                 
-                {/* Project Risks */}
                 <div className="bg-white p-6 rounded-xl shadow-soft">
                   <div className="flex items-start mb-4">
                     <AlertCircle className="h-5 w-5 text-yellow-500 mr-3 mt-0.5" />
@@ -394,7 +394,6 @@ const ProjectDetail = () => {
           </div>
         </section>
         
-        {/* Related Projects */}
         <section className="py-10 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-6">
