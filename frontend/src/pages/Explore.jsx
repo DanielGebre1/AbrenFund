@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import SearchAutocomplete from "../components/SearchAutocomplete";
 
 const campaigns = [
   {
@@ -122,7 +123,9 @@ const Explore = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [sortBy, setSortBy] = useState("Most Popular");
   const [fundingRange, setFundingRange] = useState([0, 100]);
+  const [showAll, setShowAll] = useState(false);
 
+    // Filter campaigns based on search, category, and funding range
   const filteredCampaigns = campaigns.filter((campaign) => {
     const matchesSearch =
       campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -138,6 +141,11 @@ const Explore = () => {
 
     return matchesSearch && matchesCategory && matchesFunding;
   });
+
+
+  // Limit campaigns shown unless showAll is true
+  const displayedCampaigns = showAll ? filteredCampaigns : filteredCampaigns.slice(0, 6);
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -156,14 +164,10 @@ const Explore = () => {
               </p>
 
               <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="text"
+                <SearchAutocomplete 
                   placeholder="Search projects..."
-                  className="pl-10 py-6 pr-4 bg-white shadow-soft rounded-lg"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                  className="w-full"
+                  isPopover={true} />
               </div>
             </div>
           </div>
@@ -268,9 +272,25 @@ const Explore = () => {
             )}
 
             <div className="mt-10 text-center">
-              <Button variant="outline" size="lg">
-                Load More Projects
-              </Button>
+            {!showAll && filteredCampaigns.length > 6 ? (
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={() => setShowAll(true)}
+                >
+                  View All Projects ({filteredCampaigns.length})
+                </Button>
+              ) : (
+                showAll && (
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    onClick={() => setShowAll(false)}
+                  >
+                    Show Less
+                  </Button>
+                )
+              )}
             </div>
           </div>
         </section>
