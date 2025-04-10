@@ -1,4 +1,7 @@
 import { BadgeCheck, Rocket, Heart, Award } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "./ui/button";
+import { checkAuthAndRedirect } from "../utils/authRedirect";
 
 const steps = [
   {
@@ -24,6 +27,11 @@ const steps = [
 ];
 
 const HowItWorks = () => {
+  const handleStartCampaign = () => {
+    if (checkAuthAndRedirect('/login')) {
+      window.location.href = '/create-campaign';
+    }
+  };
   return (
     <section className="py-20 bg-muted/50">
       <div className="container mx-auto px-4">
@@ -32,6 +40,16 @@ const HowItWorks = () => {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Our platform makes it easy to bring your ideas to life with community support.
           </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Button size="lg" onClick={handleStartCampaign}>
+              Start a Campaign
+            </Button>
+            <Link to="/explore">
+              <Button variant="outline" size="lg">
+                Browse Projects
+              </Button>
+            </Link>
+          </div>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
