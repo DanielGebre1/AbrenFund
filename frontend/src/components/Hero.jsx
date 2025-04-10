@@ -1,8 +1,15 @@
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
 import SearchAutocomplete from "./SearchAutocomplete";
+import { checkAuthAndRedirect } from "../utils/authRedirect";
 
 const Hero = () => {
+  const handleStartCampaign = () => {
+    if (checkAuthAndRedirect('/login')) {
+      window.location.href = '/create-campaign';
+    }
+  };
+
   return (
     <section className="relative py-20 overflow-hidden bg-gradient-to-b from-primary/5 to-background">
       <div className="container mx-auto px-4">
@@ -16,19 +23,17 @@ const Hero = () => {
               Wollo University's crowdfunding platform connects innovators with backers to bring impactful projects to life.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-            <Link to="/signup">
-                <Button size="lg" className="relative overflow-hidden group">
-                  <span className="relative z-10">Start a Campaign</span>
-                  <span className="absolute inset-0 bg-accent transform transition-transform group-hover:scale-x-100 scale-x-0 origin-left"></span>
-                </Button>
-              </Link>
+              <Button size="lg" className="relative overflow-hidden group" onClick={handleStartCampaign}>
+                <span className="relative z-10">Start a Campaign</span>
+                <span className="absolute inset-0 bg-accent transform transition-transform group-hover:scale-x-100 scale-x-0 origin-left"></span>
+              </Button>
               <Link to="/explore">
                 <Button variant="outline" size="lg">
                   Explore Projects
                 </Button>
               </Link>
             </div>
-            
+
             <div className="mt-12">
               <SearchAutocomplete 
                 placeholder="Search for projects or causes..." 
@@ -36,7 +41,7 @@ const Hero = () => {
               />
             </div>
           </div>
-          
+
           <div className="relative hidden md:block">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-secondary/20 rounded-full blur-3xl"></div>
             <div className="absolute top-1/3 left-1/3 w-64 h-64 bg-primary/20 rounded-full blur-3xl"></div>
@@ -72,7 +77,7 @@ const Hero = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="mt-20 py-6 border-t bg-white">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap justify-around items-center gap-8">

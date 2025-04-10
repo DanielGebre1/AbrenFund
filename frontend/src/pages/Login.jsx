@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Checkbox } from "../components/ui/checkbox";
-import { Eye, EyeOff, Leaf } from "lucide-react";
+import { Eye, EyeOff, HeartHandshake } from "lucide-react";
 import Header from "../components/Header";
 
 const Login = () => {
@@ -11,10 +11,19 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log({ email, password, rememberMe });
+     
+    // Simulate successful login
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userEmail', email);
+    
+    // Redirect to home page or the previously attempted page
+    const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/';
+    navigate(redirectTo);
   };
 
   return (
@@ -24,8 +33,8 @@ const Login = () => {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <Link to="/" className="inline-flex items-center justify-center mb-6">
-              <Leaf className="h-8 w-8 text-primary mr-2" />
-              <span className="text-3xl font-display font-bold text-primary">AbrenFund</span>
+            <HeartHandshake className="h-8 w-8 text-primary mr-2" />
+            <span className="text-3xl font-display font-bold text-primary">AbrenFund</span>
             </Link>
             <h1 className="text-2xl font-bold mb-2">Welcome back</h1>
             <p className="text-muted-foreground">Log in to your account to continue</p>
