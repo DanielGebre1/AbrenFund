@@ -1,6 +1,7 @@
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import CampaignCard from "./CampaignCard";
+import { Link } from "react-router-dom";
 
 const featuredCampaigns = [
   {
@@ -151,9 +152,11 @@ const FeaturedCampaigns = () => {
         </Tabs>
 
         <div className="text-center mt-12">
-          <Button size="lg" variant="outline">
-            View All Projects
-          </Button>
+        <Link to="/explore">
+            <Button size="lg" variant="outline">
+              View All Projects
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
