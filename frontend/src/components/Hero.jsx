@@ -1,5 +1,6 @@
 import { Button } from "./ui/button";
-import { Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import SearchAutocomplete from "./SearchAutocomplete";
 
 const Hero = () => {
   return (
@@ -15,27 +16,24 @@ const Hero = () => {
               Wollo University's crowdfunding platform connects innovators with backers to bring impactful projects to life.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="relative overflow-hidden group">
-                <span className="relative z-10">Start a Campaign</span>
-                <span className="absolute inset-0 bg-accent transform transition-transform group-hover:scale-x-100 scale-x-0 origin-left"></span>
-              </Button>
-              <Button variant="outline" size="lg">
-                Explore Projects
-              </Button>
+            <Link to="/signup">
+                <Button size="lg" className="relative overflow-hidden group">
+                  <span className="relative z-10">Start a Campaign</span>
+                  <span className="absolute inset-0 bg-accent transform transition-transform group-hover:scale-x-100 scale-x-0 origin-left"></span>
+                </Button>
+              </Link>
+              <Link to="/explore">
+                <Button variant="outline" size="lg">
+                  Explore Projects
+                </Button>
+              </Link>
             </div>
             
-            <div className="mt-12 bg-white rounded-xl shadow-soft p-3 flex flex-col sm:flex-row items-stretch">
-              <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Search for projects or causes..." 
-                  className="w-full pl-10 pr-4 py-3 rounded-md border-0 bg-transparent focus:ring-0 focus:outline-none"
-                />
-              </div>
-              <Button className="mt-3 sm:mt-0 whitespace-nowrap">
-                Find Projects
-              </Button>
+            <div className="mt-12">
+              <SearchAutocomplete 
+                placeholder="Search for projects or causes..." 
+                className="bg-white rounded-xl shadow-soft"
+              />
             </div>
           </div>
           

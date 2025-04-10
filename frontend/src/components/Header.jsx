@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { Button } from "./ui/button";
+import {
+  Dialog,
+  DialogContent
+} from "./ui/dialog";
 import { Link } from "react-router-dom";
 import { Menu, X, Search,Leaf } from "lucide-react";
+import SearchAutocomplete from "./SearchAutocomplete";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -29,8 +35,12 @@ const Header = () => {
 
         {/* Desktop Action Buttons */}
         <div className="hidden md:flex items-center space-x-4">
-          <Button variant="outline" size="sm" className="rounded-full">
-            <Search className="h-4 w-4 mr-2" />
+        <Button 
+            variant="outline" 
+            size="sm" 
+            className="rounded-full"
+            onClick={() => setSearchDialogOpen(true)}
+          >            <Search className="h-4 w-4 mr-2" />
             Search
           </Button>
           <Link to="/login"><Button variant="outline" size="sm">Login</Button></Link>
@@ -52,11 +62,23 @@ const Header = () => {
         <div className="md:hidden bg-background border-t">
           <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
             <div className="flex items-center border rounded-md overflow-hidden">
-              <Search className="h-4 w-4 ml-3 text-muted-foreground" />
-              <input 
+            <button 
+                className="p-2"
+                onClick={() => {
+                  setSearchDialogOpen(true);
+                  setIsOpen(false);
+                }}
+              >
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </button>              <input 
                 type="text" 
                 placeholder="Search campaigns..." 
                 className="w-full p-2 outline-none bg-transparent"
+                onClick={() => {
+                  setSearchDialogOpen(true);
+                  setIsOpen(false);
+                }}
+                readOnly
               />
             </div>
             <Link to="/" className="py-3 text-foreground hover:text-primary font-medium" onClick={toggleMenu}>Home</Link>
@@ -70,6 +92,20 @@ const Header = () => {
           </div>
         </div>
       )}
+      
+       {/* Search Dialog */}
+       <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
+        <DialogContent className="sm:max-w-md p-0">
+          <div className="p-6">
+            <h2 className="text-lg font-bold mb-4">Search Projects</h2>
+            <SearchAutocomplete 
+              placeholder="Search for projects or causes..." 
+              onClose={() => setSearchDialogOpen(false)}
+              isPopover={true}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };
