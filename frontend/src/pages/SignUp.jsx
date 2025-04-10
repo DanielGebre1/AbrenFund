@@ -1,13 +1,15 @@
 // SignUp.jsx
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Checkbox } from "../components/ui/checkbox";
 import { Eye, EyeOff, Leaf } from "lucide-react";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 const SignUp = () => {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,16 +17,28 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
+      setIsSubmitting(false);
       return;
     }
 
-    console.log({ name, email, password, agreeTerms });
+    // Store the email in localStorage for the verification page
+    localStorage.setItem("pendingVerificationEmail", email);
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      console.log({ name, email, password, agreeTerms });
+      setIsSubmitting(false);
+      // Redirect to email verification page
+      navigate("/email-verification");
+    }, 1500);
   };
 
   return (
@@ -148,9 +162,8 @@ const SignUp = () => {
                   </Link>
                 </label>
               </div>
-
-              <Button type="submit" className="w-full">
-                Create Account
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
 
@@ -185,6 +198,7 @@ const SignUp = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
