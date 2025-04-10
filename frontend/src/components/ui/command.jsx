@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Dialog } from "@/components/ui/dialog"
+import { Dialog } from "./dialog"
 import { Command as CommandPrimitive } from "cmdk"
 import { Search } from "lucide-react"
 import { cn } from "../../lib/utils"

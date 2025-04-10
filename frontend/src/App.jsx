@@ -10,6 +10,7 @@ import HowItWorks from "./pages/HowItWorks";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import EmailVerification from "./pages/EmailVerification";
 import SuccessStories from "./pages/SuccessStories";
 import ProjectDetail from "./pages/ProjectDetail";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/email-verification" element={<EmailVerification />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/success-stories" element={<SuccessStories />} />
           <Route path="/project/:id" element={<ProjectDetail />} />

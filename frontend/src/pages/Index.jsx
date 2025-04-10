@@ -1,6 +1,7 @@
 import React from 'react';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
+import Categories from '../components/Categories';
 import FeaturedCampaigns from '../components/FeaturedCampaign';
 import HowItWorks from '../components/HowItWorks';
 import Stats from '../components/Stats';
@@ -13,6 +14,7 @@ const Index = () => {
       
       <main className="flex-grow">
         <Hero />
+        <Categories />
         <FeaturedCampaigns />
         <HowItWorks />
         <TrustedPartners />
