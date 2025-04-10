@@ -7,6 +7,7 @@ import {
 import { Link } from "react-router-dom";
 import { Menu, X, Search,Leaf } from "lucide-react";
 import SearchAutocomplete from "./SearchAutocomplete";
+import { ThemeToggle } from "./ThemeToggle";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,7 +18,7 @@ const Header = () => {
   };
 
   return (
-    <header className="w-full bg-white/90 backdrop-blur-md py-4 sticky top-0 z-50 border-b">
+    <header className="w-full bg-background/90 backdrop-blur-md py-4 sticky top-0 z-50 border-b">
       <div className="container mx-auto px-4 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center">
@@ -35,6 +36,7 @@ const Header = () => {
 
         {/* Desktop Action Buttons */}
         <div className="hidden md:flex items-center space-x-4">
+        <ThemeToggle />
         <Button 
             variant="outline" 
             size="sm" 
@@ -80,6 +82,9 @@ const Header = () => {
                 }}
                 readOnly
               />
+              </div>
+            <div className="flex justify-end py-2">
+              <ThemeToggle />
             </div>
             <Link to="/" className="py-3 text-foreground hover:text-primary font-medium" onClick={toggleMenu}>Home</Link>
             <Link to="/explore" className="py-3 text-foreground hover:text-primary font-medium" onClick={toggleMenu}>Explore</Link>
