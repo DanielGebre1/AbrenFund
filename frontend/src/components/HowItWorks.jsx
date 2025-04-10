@@ -40,16 +40,7 @@ const HowItWorks = () => {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Our platform makes it easy to bring your ideas to life with community support.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Button size="lg" onClick={handleStartCampaign}>
-              Start a Campaign
-            </Button>
-            <Link to="/explore">
-              <Button variant="outline" size="lg">
-                Browse Projects
-              </Button>
-            </Link>
-          </div>
+          
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
