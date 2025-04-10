@@ -21,6 +21,7 @@ import CreatorDashboard from "./pages/CreatorDashboard";
 import CreateCampaign from "./pages/CreateCampaign";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
+import Wallet from "./pages/Wallet";
 import ScrollToTop from "./components/ScrollToTop";
 
 const PrivateRoute = ({ children }) => {
@@ -68,6 +69,7 @@ const App = () => (
             {/* Protected routes */}
             <Route path="/payment/:id" element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
             <Route path="/payment" element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
+            <Route path="/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
             <Route path="/admin-dashboard" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
             <Route path="/creator-dashboard" element={<PrivateRoute><CreatorDashboard /></PrivateRoute>} />
             <Route path="/create-campaign" element={<PrivateRoute><CreateCampaign /></PrivateRoute>} />
