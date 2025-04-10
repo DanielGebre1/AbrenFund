@@ -103,10 +103,10 @@ const Header = () => {
                     Creator Dashboard
                   </DropdownMenuItem>
                 </Link>
-                <Link to="/payment">
+                <Link to="/wallet">
                   <DropdownMenuItem className="cursor-pointer">
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Payments
+                    Wallet
                   </DropdownMenuItem>
                 </Link>
                 <Link to="/notifications">
@@ -195,10 +195,9 @@ const Header = () => {
                     Creator Dashboard
                   </Button>
                 </Link>
-                <Link to="/payment" onClick={toggleMenu}>
-                  <Button variant="outline" className="w-full justify-start">
+                <Link to="/wallet" onClick={toggleMenu}>                  <Button variant="outline" className="w-full justify-start">
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Payments
+                    Wallet
                   </Button>
                 </Link>
                 <Link to="/settings" onClick={toggleMenu}>
