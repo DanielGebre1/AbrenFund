@@ -48,6 +48,50 @@ const featuredCampaigns = [
     daysLeft: 45,
     backers: 93,
   },
+  {
+    id: 9,
+    title: "Educational Robotics Lab",
+    description: "Creating a robotics lab for students to learn programming and engineering principles hands-on.",
+    imageUrl: "https://images.unsplash.com/photo-1531746790731-6c087fecd65a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80",
+    category: "Technology",
+    raisedAmount: 195000,
+    goalAmount: 350000,
+    daysLeft: 25,
+    backers: 58,
+  },
+  {
+    id: 10,
+    title: "Community Garden Initiative",
+    description: "Building sustainable community gardens to teach agriculture and provide fresh produce.",
+    imageUrl: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80",
+    category: "Agriculture",
+    raisedAmount: 87000,
+    goalAmount: 120000,
+    daysLeft: 18,
+    backers: 39,
+  },
+  {
+    id: 11,
+    title: "Sports Equipment for Local Schools",
+    description: "Providing quality sports equipment to underfunded schools in the region.",
+    imageUrl: "https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80",
+    category: "Sports",
+    raisedAmount: 45000,
+    goalAmount: 80000,
+    daysLeft: 12,
+    backers: 32,
+  },
+  {
+    id: 12,
+    title: "Digital Literacy Program",
+    description: "Teaching essential digital skills to communities with limited technology access.",
+    imageUrl: "https://images.unsplash.com/photo-1577375729152-4c8b5fcda381?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80",
+    category: "Education",
+    raisedAmount: 110000,
+    goalAmount: 180000,
+    daysLeft: 28,
+    backers: 64,
+  },
 ];
 
 const trendingCampaigns = [
@@ -95,6 +139,50 @@ const trendingCampaigns = [
     daysLeft: 38,
     backers: 27,
   },
+  {
+    id: 13,
+    title: "Art Therapy Workshop Series",
+    description: "Providing healing through art for students dealing with stress and anxiety.",
+    imageUrl: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80",
+    category: "Arts",
+    raisedAmount: 65000,
+    goalAmount: 95000,
+    daysLeft: 15,
+    backers: 48,
+  },
+  {
+    id: 14,
+    title: "Science Lab Equipment Upgrade",
+    description: "Modernizing laboratories with state-of-the-art equipment for advanced research.",
+    imageUrl: "https://images.unsplash.com/photo-1582719471384-894fbb16e074?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80",
+    category: "Education",
+    raisedAmount: 320000,
+    goalAmount: 450000,
+    daysLeft: 32,
+    backers: 79,
+  },
+  {
+    id: 15,
+    title: "Accessible Campus Initiative",
+    description: "Making university facilities more accessible for students with disabilities.",
+    imageUrl: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80",
+    category: "Accessibility",
+    raisedAmount: 170000,
+    goalAmount: 250000,
+    daysLeft: 22,
+    backers: 103,
+  },
+  {
+    id: 16,
+    title: "Student Film Festival",
+    description: "Funding a platform for student filmmakers to showcase their creative work.",
+    imageUrl: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1050&q=80",
+    category: "Arts",
+    raisedAmount: 55000,
+    goalAmount: 100000,
+    daysLeft: 19,
+    backers: 37,
+  },
 ];
 
 const FeaturedCampaigns = () => {
@@ -120,7 +208,7 @@ const FeaturedCampaigns = () => {
 
           <TabsContent value="featured">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredCampaigns.map((campaign) => (
+            {featuredCampaigns.slice(0, 8).map((campaign) => (
                 <CampaignCard key={campaign.id} {...campaign} />
               ))}
             </div>
@@ -128,7 +216,7 @@ const FeaturedCampaigns = () => {
 
           <TabsContent value="trending">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {trendingCampaigns.map((campaign) => (
+            {trendingCampaigns.slice(0, 8).map((campaign) => (
                 <CampaignCard key={campaign.id} {...campaign} />
               ))}
             </div>
@@ -136,16 +224,18 @@ const FeaturedCampaigns = () => {
 
           <TabsContent value="new">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredCampaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} {...campaign} />
+{/* For simplicity, using featuredCampaigns but with different sorting */}
+{[...featuredCampaigns].reverse().slice(0, 8).map((campaign) => (
+                               <CampaignCard key={campaign.id} {...campaign} />
               ))}
             </div>
           </TabsContent>
 
           <TabsContent value="closing">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {trendingCampaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} {...campaign} />
+{/* For simplicity, using trendingCampaigns but with custom sorting */}
+{[...trendingCampaigns].sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 8).map((campaign) => (
+                               <CampaignCard key={campaign.id} {...campaign} />
               ))}
             </div>
           </TabsContent>
