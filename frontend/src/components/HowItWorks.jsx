@@ -33,9 +33,17 @@ const HowItWorks = () => {
     }
   };
   return (
-    <section className="py-20 bg-muted/50">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
+    <section className="py-20 bg-muted/50 relative overflow-hidden">
+    {/* Animated background shapes */}
+    <div className="absolute inset-0 z-0 overflow-hidden">
+      <div className="absolute h-64 w-64 rounded-full bg-primary/10 -left-10 -top-10 animate-blob"></div>
+      <div className="absolute h-80 w-80 rounded-full bg-secondary/10 right-10 top-20 animate-blob animation-delay-2000"></div>
+      <div className="absolute h-72 w-72 rounded-full bg-accent/10 left-60 bottom-10 animate-blob animation-delay-4000"></div>
+      <div className="absolute h-96 w-96 rounded-full bg-primary/5 -right-20 -bottom-20 animate-blob animation-delay-3000"></div>
+    </div>
+    
+    <div className="container mx-auto px-4 relative z-10">
+      <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">How It Works</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Our platform makes it easy to bring your ideas to life with community support.
@@ -63,6 +71,19 @@ const HowItWorks = () => {
               </div>
             </div>
           ))}
+           </div>
+        
+        <div className="mt-12 text-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" onClick={handleStartCampaign}>
+              Start a Campaign
+            </Button>
+            <Link to="/explore">
+              <Button variant="outline" size="lg">
+                Browse Projects
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

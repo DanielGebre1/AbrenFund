@@ -14,28 +14,46 @@ import {
   Bell, 
   Check 
 } from "lucide-react";
+import { checkAuthAndRedirect } from "../utils/authRedirect";
+import { Link } from "react-router-dom";
 
 const HowItWorksPage = () => {
+  const handleStartCampaign = () => {
+    if (checkAuthAndRedirect('/login')) {
+      window.location.href = '/create-campaign';
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       
       <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-b from-primary/10 to-background py-20">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl md:text-5xl font-display font-bold mb-6">How AbrenFund Works</h1>
+         {/* Hero Section with animated background */}
+         <section className="bg-gradient-to-b from-primary/10 to-background py-20 relative overflow-hidden">
+          {/* Animated background shapes */}
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <div className="absolute h-96 w-96 rounded-full bg-primary/10 -left-20 -top-20 animate-blob"></div>
+            <div className="absolute h-80 w-80 rounded-full bg-secondary/10 right-20 top-40 animate-blob animation-delay-2000"></div>
+            <div className="absolute h-72 w-72 rounded-full bg-accent/10 left-1/4 bottom-20 animate-blob animation-delay-4000"></div>
+            <div className="absolute h-64 w-64 rounded-full bg-primary/5 right-1/4 bottom-10 animate-blob animation-delay-3000"></div>
+          </div>
+
+          <div className="container mx-auto px-4 text-center relative z-10">
+           <h1 className="text-4xl md:text-5xl font-display font-bold mb-6">How AbrenFund Works</h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
               Our platform makes it easy to bring your ideas to life with community support.
               Here's everything you need to know to get started.
             </p>
             <div className="flex justify-center gap-4 flex-wrap">
-              <Button size="lg">
+            <Button size="lg" onClick={handleStartCampaign}>
                 Start a Campaign
               </Button>
-              <Button variant="outline" size="lg">
-                Browse Projects
-              </Button>
+              <Link to="/explore">
+                <Button variant="outline" size="lg">
+                  Browse Projects
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
@@ -98,8 +116,15 @@ const HowItWorksPage = () => {
         </section>
         
         {/* For Campaign Creators */}
-        <section className="py-20 bg-muted/50">
-          <div className="container mx-auto px-4">
+        <section className="py-20 bg-muted/50 relative overflow-hidden">
+          {/* Animated background shapes */}
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <div className="absolute h-64 w-64 rounded-full bg-primary/10 -right-10 -top-10 animate-blob animation-delay-1000"></div>
+            <div className="absolute h-80 w-80 rounded-full bg-secondary/10 left-10 top-20 animate-blob animation-delay-3000"></div>
+            <div className="absolute h-72 w-72 rounded-full bg-accent/10 right-1/3 bottom-10 animate-blob animation-delay-5000"></div>
+          </div>
+
+          <div className="container mx-auto px-4 relative z-10">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">For Campaign Creators</h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -209,9 +234,15 @@ const HowItWorksPage = () => {
         </section>
         
         {/* FAQs */}
-        <section className="py-20 bg-muted/50">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
+        <section className="py-20 bg-muted/50 relative overflow-hidden">
+          {/* Animated background shapes for FAQs */}
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <div className="absolute h-64 w-64 rounded-full bg-primary/10 left-1/4 -top-20 animate-blob animation-delay-2000"></div>
+            <div className="absolute h-80 w-80 rounded-full bg-secondary/10 right-1/4 bottom-20 animate-blob animation-delay-4000"></div>
+          </div>
+
+          <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Frequently Asked Questions</h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                 Common questions about how AbrenFund works.
@@ -253,30 +284,41 @@ const HowItWorksPage = () => {
                 <p className="mb-4 text-muted-foreground">
                   Didn't find what you're looking for?
                 </p>
-                <Button>
-                  Contact Support
-                </Button>
+                <Link to="/support">
+                  <Button>
+                    Contact Support
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
         </section>
         
         {/* CTA Section */}
-        <section className="py-20 bg-primary text-primary-foreground">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
+        <section className="py-20 bg-primary text-primary-foreground relative overflow-hidden">
+          {/* Animated background shapes */}
+          <div className="absolute inset-0 z-0 overflow-hidden opacity-20">
+            <div className="absolute h-96 w-96 rounded-full bg-white/20 -left-20 -top-20 animate-blob animation-delay-1000"></div>
+            <div className="absolute h-80 w-80 rounded-full bg-white/20 right-1/3 top-10 animate-blob animation-delay-3000"></div>
+            <div className="absolute h-72 w-72 rounded-full bg-white/20 left-1/3 bottom-10 animate-blob animation-delay-2000"></div>
+          </div>
+
+          <div className="container mx-auto px-4 text-center relative z-10">
+           <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
               Ready to Bring Your Ideas to Life?
             </h2>
             <p className="text-xl max-w-2xl mx-auto mb-10 text-primary-foreground/90">
               Join AbrenFund today and start your journey toward making your project a reality.
             </p>
             <div className="flex justify-center gap-4 flex-wrap">
-              <Button size="lg" variant="secondary">
-                Start a Campaign
+            <Button size="lg" variant="secondary" onClick={handleStartCampaign}>
+               Start a Campaign
               </Button>
-              <Button variant="outline" size="lg" className="bg-transparent border-white text-white hover:bg-white/10">
-                Learn More
-              </Button>
+              <Link to="/explore">
+                <Button variant="outline" size="lg" className="bg-transparent border-white text-white hover:bg-white/10">
+                  Learn More
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
