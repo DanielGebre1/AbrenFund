@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Twitter, Instagram, Youtube, Mail, Leaf } from "lucide-react";
+import { Facebook, Twitter, Instagram, Youtube, Mail, HeartHandshake } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -10,8 +10,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
           <Link to="/" className="inline-flex items-center mb-4">
-              <Leaf className="h-6 w-6 text-white mr-2" />
-              <span className="text-2xl font-display font-bold text-white">AbrenFund</span>
+          <HeartHandshake className="h-6 w-6 text-white mr-2" />
+          <span className="text-2xl font-display font-bold text-white">AbrenFund</span>
             </Link>
             <p className="text-muted-foreground mb-6">
               Empowering innovation and impact through community-driven funding.
@@ -51,8 +51,8 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/faq" className="text-primary-foreground/70 hover:text-primary-foreground transition">
-                  FAQs
+              <Link to="/support" className="text-primary-foreground/70 hover:text-primary-foreground transition">
+                  Support
                 </Link>
               </li>
               <li>
