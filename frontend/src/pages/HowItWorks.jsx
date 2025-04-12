@@ -20,7 +20,7 @@ import { Link } from "react-router-dom";
 const HowItWorksPage = () => {
   const handleStartCampaign = () => {
     if (checkAuthAndRedirect('/login')) {
-      window.location.href = '/create-campaign';
+      window.location.href = '/creator-dashboard';
     }
   };
 

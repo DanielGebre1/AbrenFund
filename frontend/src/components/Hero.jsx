@@ -1,13 +1,14 @@
 import { Button } from "./ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import SearchAutocomplete from "./SearchAutocomplete";
 import { checkAuthAndRedirect } from "../utils/authRedirect";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   const handleStartCampaign = () => {
     if (checkAuthAndRedirect('/login')) {
-      window.location.href = '/create-campaign';
-    }
+      navigate('/creator-dashboard');    }
   };
 
   return (
