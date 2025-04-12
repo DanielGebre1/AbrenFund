@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import CampaignCard from "../components/CampaignCard";
@@ -102,12 +103,7 @@ const categories = [
   "Education",
   "Health",
   "Technology",
-  "Culture",
-  "Infrastructure",
-  "Environment",
-  "Arts",
-  "Sports",
-  "Community",
+  "Culture", "Infrastructure", "Environment", "Arts", "Sports", "Community", "Research"
 ];
 
 const sortOptions = [
@@ -119,11 +115,22 @@ const sortOptions = [
 ];
 
 const Explore = () => {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [sortBy, setSortBy] = useState("Most Popular");
   const [fundingRange, setFundingRange] = useState([0, 100]);
   const [showAll, setShowAll] = useState(false);
+
+  // Read category from URL parameters on component mount
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const categoryParam = params.get('category');
+    
+    if (categoryParam && categories.includes(categoryParam)) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [location.search]);
 
     // Filter campaigns based on search, category, and funding range
   const filteredCampaigns = campaigns.filter((campaign) => {

@@ -15,56 +15,56 @@ const categories = [
     name: "Innovation & Tech",
     icon: <Lightbulb className="h-6 w-6" />,
     description: "Tech innovations & startups",
-    slug: "innovation-tech",
+    slug: "Technology",
     count: 45
   },
   {
     name: "Environment",
     icon: <Leaf className="h-6 w-6" />,
     description: "Sustainability projects",
-    slug: "environment",
+    slug: "Environment",
     count: 38
   },
   {
     name: "Research",
     icon: <Microscope className="h-6 w-6" />,
     description: "Academic research",
-    slug: "research",
+    slug: "Research",
     count: 29
   },
   {
     name: "Education",
     icon: <GraduationCap className="h-6 w-6" />,
     description: "Educational initiatives",
-    slug: "education",
+    slug: "Education",
     count: 56
   },
   {
     name: "Arts & Culture",
     icon: <Palette className="h-6 w-6" />,
     description: "Art & cultural preservation",
-    slug: "arts-culture",
+    slug: "Culture",
     count: 24
   },
   {
     name: "Computer Science",
     icon: <Code className="h-6 w-6" />,
     description: "CS innovations & research",
-    slug: "computer-science",
+    slug: "Technology",
     count: 42
   },
   {
     name: "Community",
     icon: <HeartHandshake className="h-6 w-6" />,
     description: "Community development",
-    slug: "community",
+    slug: "Community",
     count: 31
   },
   {
     name: "Infrastructure",
     icon: <Building className="h-6 w-6" />,
     description: "Campus infrastructure",
-    slug: "infrastructure",
+    slug: "Infrastructure",
     count: 19
   }
 ];

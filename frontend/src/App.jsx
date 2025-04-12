@@ -25,6 +25,10 @@ import Notifications from "./pages/Notifications";
 import Wallet from "./pages/Wallet";
 import Support from "./pages/Support";
 import ScrollToTop from "./components/ScrollToTop";
+import Blog from "./pages/Blog";
+import FundraisingGuides from "./pages/FundraisingGuides";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // Simple auth guard component (JSX version)
 const PrivateRoute = ({ children }) => {
@@ -54,7 +58,11 @@ const App = () => (
             <Route path="/success-stories" element={<SuccessStories />} />
             <Route path="/project/:id" element={<ProjectDetail />} />
             <Route path="/support" element={<Support />} />
-
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/guides" element={<FundraisingGuides />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            
             {/* Protected routes */}
             <Route path="/payment/:id" element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
             <Route path="/payment" element={<PrivateRoute><PaymentPage /></PrivateRoute>} />

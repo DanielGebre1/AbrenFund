@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useState } from 'react';
 import { Link } from "react-router-dom";
 import { Search, PanelTop, CreditCard, Settings, LogOut, User } from "lucide-react";
@@ -5,18 +6,31 @@ import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { ThemeToggle } from "../ThemeToggle";
 
+
 const MobileMenu = ({ 
   isOpen, 
   toggleMenu, 
   isLoggedIn, 
   onLogout, 
   onSearchClick 
-}) => {
-  if (!isOpen) return null;
+}) => { useEffect(() => {
+  if (isOpen) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
 
+  return () => {
+    document.body.style.overflow = '';
+  };
+}, [isOpen]);
+
+if (!isOpen) return null;
   return (
-    <div className="md:hidden bg-background border-t">
-      <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
+    
+<div className="md:hidden bg-background border-t max-h-screen overflow-y-auto">
+<div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
+
         <div className="flex items-center border rounded-md overflow-hidden">
           <button 
             className="p-2"
@@ -36,10 +50,10 @@ const MobileMenu = ({
               toggleMenu();
             }}
             readOnly
-          />
+            />
         </div>
         <div className="flex justify-end py-2">
-          <ThemeToggle />
+         
         </div>
         <Link to="/" className="py-3 text-foreground hover:text-primary font-medium" onClick={toggleMenu}>Home</Link>
         <Link to="/explore" className="py-3 text-foreground hover:text-primary font-medium" onClick={toggleMenu}>Explore</Link>
@@ -88,6 +102,7 @@ const MobileMenu = ({
         )}
       </div>
     </div>
+        
   );
 };
 

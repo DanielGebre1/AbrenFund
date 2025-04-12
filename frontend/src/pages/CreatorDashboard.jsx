@@ -210,7 +210,7 @@ const CreatorDashboard = () => {
             
             <div className="mt-4 md:mt-0 md:ml-auto">
               <Button asChild>
-                <Link to="/create-project">
+                <Link to="/create-campaign">
                   <Plus className="mr-2 h-4 w-4" />
                   Create New Project
                 </Link>
@@ -411,7 +411,7 @@ const CreatorDashboard = () => {
                     <h3 className="text-lg font-bold mb-2">No projects found</h3>
                     <p className="text-muted-foreground mb-4">You don't have any projects yet or none match your search</p>
                     <Button asChild>
-                      <Link to="/create-project">
+                      <Link to="/create-campaign">
                         <Plus className="mr-2 h-4 w-4" />
                         Create Your First Project
                       </Link>
