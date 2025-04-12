@@ -136,9 +136,91 @@ const Support = () => {
         <section className="py-16">
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-3 gap-8">
-              {/* Support Cards (3) */}
-              {/* ... no change needed here ... */}
-              {/* For brevity, keeping rest of the section unchanged */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <MessageSquare className="h-10 w-10 text-primary mb-3" />
+                  <CardTitle>Contact Support</CardTitle>
+                  <CardDescription>
+                    Get in touch with our customer support team
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>support@abrenfund.com</span>
+                    </li>
+                    <li className="flex items-center">
+                      <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>+251 78 123 4567</span>
+                    </li>
+                    <li className="text-muted-foreground text-xs mt-4">
+                      Response Time: Within 24-48 hours
+                    </li>
+                  </ul>
+                  <Button className="w-full mt-4" variant="outline">
+                    Contact Team
+                  </Button>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <FileQuestion className="h-10 w-10 text-primary mb-3" />
+                  <CardTitle>Knowledge Base</CardTitle>
+                  <CardDescription>
+                    Find answers to common questions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start">
+                      <BookOpen className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
+                      <span>Campaign creation guides</span>
+                    </li>
+                    <li className="flex items-start">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
+                      <span>Troubleshooting common issues</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Rocket className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
+                      <span>Tips for successful fundraising</span>
+                    </li>
+                  </ul>
+                  <Button className="w-full mt-4" variant="outline">
+                    Browse Articles
+                  </Button>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <Globe className="h-10 w-10 text-primary mb-3" />
+                  <CardTitle>Community</CardTitle>
+                  <CardDescription>
+                    Connect with other creators and backers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start">
+                      <Users className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
+                      <span>Discussion forums</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Youtube className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
+                      <span>Tutorial videos</span>
+                    </li>
+                    <li className="flex items-start">
+                      <MessageSquare className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
+                      <span>Creator community events</span>
+                    </li>
+                  </ul>
+                  <Button className="w-full mt-4" variant="outline">
+                    Join Community
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
@@ -204,11 +286,109 @@ const Support = () => {
               ) : (
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Name & Email */}
-                    {/* Topic Radio Group */}
-                    {/* Message Textarea */}
-                    {/* Submit Button */}
-                    {/* (All same, only removed types from fields) */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Your name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Your email address" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="topic"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Topic</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="grid grid-cols-2 md:grid-cols-5 gap-4"
+                            >
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="general" />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">General</FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="technical" />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">Technical</FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="billing" />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">Billing</FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="campaign" />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">Campaign</FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="feature" />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">Feature Request</FormLabel>
+                              </FormItem>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Message</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Please describe your question or issue in detail"
+                              className="min-h-32"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Please provide as much detail as possible so we can best assist you.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button type="submit" className="w-full">
+                      Submit
+                    </Button>
                   </form>
                 </Form>
               )}
