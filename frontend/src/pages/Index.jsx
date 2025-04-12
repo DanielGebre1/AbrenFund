@@ -7,6 +7,9 @@ import HowItWorks from '../components/HowItWorks';
 import Stats from '../components/Stats';
 import Footer from '../components/Footer';
 import TrustedPartners from '../components/TrustedPartners';
+import SuccessStoryPreview from '../components/SuccessStoryPreview';
+
+
 const Index = () => {
   return (
     <div className="flex flex-col min-h-screen">
@@ -17,6 +20,7 @@ const Index = () => {
         <Categories />
         <FeaturedCampaigns />
         <HowItWorks />
+        <SuccessStoryPreview />
         <TrustedPartners />
         <Stats />
         </main>
