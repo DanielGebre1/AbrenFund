@@ -78,7 +78,7 @@ const Blog = () => {
                     {featuredPost.category}
                   </span>
                   <span className="mx-2 text-muted-foreground">•</span>
-                  <span className="text-sm text-muted-foreground flex items-center inline-flex">
+                  <span className="text-sm text-muted-foreground inline-flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />
                     {featuredPost.date}
                   </span>
