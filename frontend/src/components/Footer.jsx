@@ -10,8 +10,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
           <Link to="/" className="inline-flex items-center mb-4">
-          <HeartHandshake className="h-6 w-6 text-white mr-2" />
-          <span className="text-2xl font-display font-bold text-white">AbrenFund</span>
+          <HeartHandshake className="h-6 w-6 mr-2" />
+          <span className="text-2xl font-display font-bold">AbrenFund</span>
             </Link>
             <p className="text-muted-foreground mb-6">
               Empowering innovation and impact through community-driven funding.

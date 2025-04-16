@@ -6,6 +6,7 @@ import { useAuthStore } from "../hooks/useAuthStore";
 import DesktopNavigation from "./header/DesktopNavigation";
 import MobileMenu from "./header/MobileMenu";
 import SearchDialogContent from "./header/SearchDialogContent";
+import { ThemeToggle } from './ThemeToggle';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,17 +42,20 @@ const Header = () => {
           isLoggedIn={isLoggedIn} 
           onLogout={handleLogout} 
           onSearchClick={handleSearchClick} 
-        />
+          />
+          
 
-        {/* Mobile Menu Button */}
-        
-        <button 
-          className="md:hidden text-foreground"
-          onClick={toggleMenu}
-          aria-label="Toggle menu"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+         {/* Mobile Menu Button and Theme Toggle */}
+        <div className="flex items-center gap-4 md:hidden">
+          <ThemeToggle />
+          <button 
+            className="text-foreground"
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+          >
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
@@ -73,8 +77,5 @@ const Header = () => {
 };
 
 export default Header;
-
-
-
 
 

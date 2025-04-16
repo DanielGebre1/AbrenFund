@@ -1,8 +1,9 @@
+
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Button } from "../ui/button";
-import { ThemeToggle } from "../ThemeToggle";
 import UserProfileDropdown from "./UserProfileDropdown";
+import { ThemeToggle } from "../ThemeToggle";
 
 const DesktopNavigation = ({ 
   isLoggedIn, 
@@ -21,7 +22,6 @@ const DesktopNavigation = ({
 
       {/* Desktop Action Buttons */}
       <div className="hidden md:flex items-center space-x-4">
-        <ThemeToggle />
         <Button 
           variant="outline" 
           size="sm" 
@@ -31,6 +31,8 @@ const DesktopNavigation = ({
           <Search className="h-4 w-4 mr-2" />
           Search
         </Button>
+        <ThemeToggle />
+        
         
         {isLoggedIn ? (
           <UserProfileDropdown onLogout={onLogout} />

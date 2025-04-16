@@ -79,7 +79,7 @@ const Hero = () => {
         </div>
       </div>
 
-      <div className="mt-20 py-6 border-t bg-white">
+      <div className="mt-20 py-6 border-t">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap justify-around items-center gap-8">
             <div className="text-center">

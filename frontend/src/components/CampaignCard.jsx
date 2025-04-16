@@ -18,7 +18,7 @@ const CampaignCard = ({
 
   return (
     <Link to={`/project/${id}`} className="block h-full">
-      <div className="bg-white rounded-xl overflow-hidden shadow-soft hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
+      <div className=" rounded-xl overflow-hidden shadow-soft hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
         <div className="relative">
           <img 
             src={imageUrl} 

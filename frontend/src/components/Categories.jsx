@@ -71,7 +71,7 @@ const categories = [
 
 function Categories() {
   return (
-    <section className="py-12 bg-white">
+    <section className="py-12 ">
       <div className="container mx-auto px-4">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-display font-bold mb-3">Browse Categories</h2>
