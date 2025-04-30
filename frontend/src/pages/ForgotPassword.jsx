@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Leaf } from "lucide-react";
+import { HeartHandshake} from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
 import Header from "../components/Header";
+import { AuthService } from "../services/api";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -12,20 +13,35 @@ const ForgotPassword = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Basic email validation
+    if (!email.includes('@') || !email.includes('.')) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await AuthService.requestResetLink(email);
       setIsSuccess(true);
       toast({
         title: "Reset link sent",
         description: "If an account exists with this email, a password reset link has been sent.",
         variant: "default",
       });
-    }, 1500);
+    } catch (error) {
+      // Error is already handled by the interceptor in AuthService
+      console.error("Password reset error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -39,7 +55,7 @@ const ForgotPassword = () => {
               to="/" 
               className="inline-flex items-center justify-center mb-6 hover:opacity-80 transition-opacity"
             >
-              <Leaf className="h-8 w-8 text-primary mr-2" />
+              <HeartHandshake className="h-8 w-8 text-primary mr-2" />
               <span className="text-3xl font-display font-bold text-primary">AbrenFund</span>
             </Link>
             <h1 className="text-2xl font-bold mb-2">Reset Password</h1>

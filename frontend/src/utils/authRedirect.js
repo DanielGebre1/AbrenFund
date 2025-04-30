@@ -2,12 +2,14 @@
 // In a real app, this would use your authentication system
 
 export const checkAuthAndRedirect = (redirectPath) => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    
-    if (!isLoggedIn) {
-      window.location.href = redirectPath;
-      return false;
-    }
-    
-    return true;
-  };
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  
+  if (!isLoggedIn) {
+    window.location.href = redirectPath;
+    return false;
+  }
+
+
+  
+  return true;
+};

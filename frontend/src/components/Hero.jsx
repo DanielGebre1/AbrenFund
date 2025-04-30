@@ -1,14 +1,18 @@
 import { Button } from "./ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import SearchAutocomplete from "./SearchAutocomplete";
-import { checkAuthAndRedirect } from "../utils/authRedirect";
+import { useAuthStore } from "../hooks/useAuthStore"; // ✅ import Zustand auth store
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuthStore(); // ✅ use the hook, it will be reactive
 
   const handleStartCampaign = () => {
-    if (checkAuthAndRedirect('/login')) {
-      navigate('/creator-dashboard');    }
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    navigate('/creator-dashboard');
   };
 
   return (

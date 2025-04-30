@@ -33,15 +33,7 @@ const AdminDashboard = () => {
       goalAmount: 250000,
       status: "pending"
     },
-    {
-      id: "p2",
-      title: "Computer Lab for Rural School",
-      organizer: "Bright Minds Foundation",
-      category: "Education",
-      date: "2023-05-10",
-      goalAmount: 180000,
-      status: "pending"
-    },
+    
     {
       id: "p3",
       title: "Clean Water Well Project",
@@ -66,18 +58,7 @@ const AdminDashboard = () => {
       daysLeft: 12,
       status: "active"
     },
-    {
-      id: "a2",
-      title: "Mobile Health Clinic",
-      organizer: "Health Access Foundation",
-      category: "Healthcare",
-      date: "2023-04-20",
-      goalAmount: 500000,
-      raisedAmount: 425000,
-      backers: 134,
-      daysLeft: 5,
-      status: "active"
-    },
+   
     {
       id: "a3",
       title: "Women's Tech Training Center",

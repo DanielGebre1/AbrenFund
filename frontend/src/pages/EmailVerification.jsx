@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { MailCheck, ArrowRight, RefreshCw } from "lucide-react";
+import { toast } from 'react-toastify';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { useAuthStore } from "../hooks/useAuthStore"; // Assuming you have the useAuthStore hook
 
 function EmailVerification() {
+  const { user, token } = useAuthStore();  // Getting user and token from store
   const [email, setEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(60);
@@ -17,7 +20,7 @@ function EmailVerification() {
     if (storedEmail) {
       setEmail(storedEmail);
     }
-    
+
     // Set up countdown for resending verification
     let timer;
     if (!canResend) {
@@ -32,21 +35,36 @@ function EmailVerification() {
         });
       }, 1000);
     }
-    
+
     return () => {
       if (timer) clearInterval(timer);
     };
   }, [canResend]);
 
-  function handleResendVerification() {
+  async function handleResendVerification() {
+    if (isResending || !canResend) return;
+
     setIsResending(true);
     
-    // Simulate API call to resend verification email
-    setTimeout(() => {
+    try {
+      const response = await api.post('/api/email/verification-notification', {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+
+      if (response.data.message === "Verification link sent!") {
+        toast.success('Verification email has been sent!');
+        setCanResend(false);  // Disable resend option
+        setCountdown(60);  // Reset the countdown
+      } else {
+        toast.error('Failed to resend verification email');
+      }
+    } catch (error) {
+      toast.error('An error occurred while resending the email');
+    } finally {
       setIsResending(false);
-      setCanResend(false);
-      setCountdown(60);
-    }, 1500);
+    }
   }
 
   return (

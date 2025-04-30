@@ -1,12 +1,12 @@
-// SignUp.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Checkbox } from "../components/ui/checkbox";
-import { Eye, EyeOff, Leaf } from "lucide-react";
+import { Eye, EyeOff, HeartHandshake } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import api from "../services/api";
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -19,26 +19,53 @@ const SignUp = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const [errors, setErrors] = useState({});
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrors({}); // Clear old errors
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      setErrors({ confirmPassword: ["Passwords do not match."] });
       setIsSubmitting(false);
       return;
     }
 
-    // Store the email in localStorage for the verification page
-    localStorage.setItem("pendingVerificationEmail", email);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      console.log({ name, email, password, agreeTerms });
-      setIsSubmitting(false);
-      // Redirect to email verification page
+    try {
+      const response = await api.post('/api/register', {
+        name,
+        email,
+        password,
+      });
+
+      console.log("Registration successful:", response.data);
+      localStorage.setItem("pendingVerificationEmail", email);
       navigate("/email-verification");
-    }, 1500);
+    } catch (error) {
+      console.error("Registration error:", error);
+
+      if (error.response) {
+        console.error("❌ Response status:", error.response.status);
+        console.error("❌ Response data:", error.response.data);
+        console.error("❌ Headers:", error.response.headers);
+
+        // Validation errors (422)
+        if (error.response.status === 422 && error.response.data.errors) {
+          setErrors(error.response.data.errors);
+        } else {
+          alert(`Registration failed: ${error.response.data.message || "Server Error"}`);
+        }
+      } else if (error.request) {
+        console.error("❌ No response received:", error.request);
+        alert("No response from server. Please check your internet or try again later.");
+      } else {
+        console.error("❌ Error message:", error.message);
+        alert("An unexpected error occurred.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -48,7 +75,7 @@ const SignUp = () => {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <Link to="/" className="inline-flex items-center justify-center mb-6">
-              <Leaf className="h-8 w-8 text-primary mr-2" />
+              <HeartHandshake className="h-8 w-8 text-primary mr-2" />
               <span className="text-3xl font-display font-bold text-primary">AbrenFund</span>
             </Link>
             <h1 className="text-2xl font-bold mb-2">Create an account</h1>
@@ -58,9 +85,7 @@ const SignUp = () => {
           <div className="bg-white p-8 rounded-xl shadow-soft">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label htmlFor="name" className="block text-sm font-medium">
-                  Full Name
-                </label>
+                <label htmlFor="name" className="block text-sm font-medium">Full Name</label>
                 <Input
                   id="name"
                   type="text"
@@ -70,12 +95,13 @@ const SignUp = () => {
                   required
                   className="w-full"
                 />
+                {errors.name && (
+                  <p className="text-xs text-red-600 mt-1">{errors.name[0]}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium">
-                  Email
-                </label>
+                <label htmlFor="email" className="block text-sm font-medium">Email</label>
                 <Input
                   id="email"
                   type="email"
@@ -85,12 +111,13 @@ const SignUp = () => {
                   required
                   className="w-full"
                 />
+                {errors.email && (
+                  <p className="text-xs text-red-600 mt-1">{errors.email[0]}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium">
-                  Password
-                </label>
+                <label htmlFor="password" className="block text-sm font-medium">Password</label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -113,12 +140,13 @@ const SignUp = () => {
                 <p className="text-xs text-muted-foreground mt-1">
                   Password must be at least 8 characters long.
                 </p>
+                {errors.password && (
+                  <p className="text-xs text-red-600 mt-1">{errors.password[0]}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="block text-sm font-medium">
-                  Confirm Password
-                </label>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium">Confirm Password</label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
@@ -138,6 +166,9 @@ const SignUp = () => {
                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {errors.confirmPassword && (
+                  <p className="text-xs text-red-600 mt-1">{errors.confirmPassword[0]}</p>
+                )}
               </div>
 
               <div className="flex items-start space-x-2">
@@ -162,6 +193,7 @@ const SignUp = () => {
                   </Link>
                 </label>
               </div>
+
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? "Creating Account..." : "Create Account"}
               </Button>

@@ -1,15 +1,15 @@
-
+import React from 'react';
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Button } from "../ui/button";
 import UserProfileDropdown from "./UserProfileDropdown";
 import { ThemeToggle } from "../ThemeToggle";
+import { useAuthStore } from "../../hooks/useAuthStore"; 
 
-const DesktopNavigation = ({ 
-  isLoggedIn, 
-  onLogout, 
-  onSearchClick 
-}) => {
+const DesktopNavigation = ({ onSearchClick, user }) => {
+  const isLoggedIn = useAuthStore(state => state.isLoggedIn);  // ✅ read from zustand
+  const logout = useAuthStore(state => state.logout);          // ✅ also read logout from zustand
+
   return (
     <>
       {/* Desktop Navigation */}
@@ -22,9 +22,9 @@ const DesktopNavigation = ({
 
       {/* Desktop Action Buttons */}
       <div className="hidden md:flex items-center space-x-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="rounded-full"
           onClick={onSearchClick}
         >
@@ -32,10 +32,9 @@ const DesktopNavigation = ({
           Search
         </Button>
         <ThemeToggle />
-        
-        
-        {isLoggedIn ? (
-          <UserProfileDropdown onLogout={onLogout} />
+
+        {isLoggedIn ? (  // ✅ correctly check zustand value
+          <UserProfileDropdown onLogout={logout} user={user}/>
         ) : (
           <>
             <Link to="/login"><Button variant="outline" size="sm">Login</Button></Link>
