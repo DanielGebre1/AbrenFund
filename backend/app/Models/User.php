@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\UserSocialProfile;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,6 +26,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'role',
+        'avatar',
+        'bio',
+        'phone',
     ];
 
     /**
@@ -59,23 +63,37 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Relationship with social profile
+     */
+    public function socialProfile()
+    {
+        return $this->hasOne(UserSocialProfile::class);
+    }
+
+    /**
      * Create a new password reset token for the user
      */
     public function createPasswordResetToken(): string
     {
-        // Delete any existing tokens
-        $this->passwordResetTokens()->delete();
-
-        // Create new token
-        $token = bin2hex(random_bytes(32));
-        $expiresAt = Carbon::now()->addHours(1);
-
-        $this->passwordResetTokens()->create([
-            'token' => hash('sha256', $token),
-            'expires_at' => $expiresAt,
-        ]);
-
-        return $token;
+        try{
+            
+            // Delete any existing tokens
+            $this->passwordResetTokens()->delete();
+            
+            // Create new token
+            $token = bin2hex(random_bytes(32));
+            $expiresAt = Carbon::now()->addHours(1);
+            
+            $this->passwordResetTokens()->create([
+                'token' => hash('sha256', $token),
+                'expires_at' => $expiresAt,
+            ]);
+            
+            return $token;
+        }catch(\Exception $e) {
+            \Log::error('Token creation failed: '.$e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -115,5 +133,35 @@ class User extends Authenticatable implements MustVerifyEmail
 
         // Send the custom notification with the reset password URL
         $this->notify(new ResetPasswordNotification($url));
+    }
+
+    /**
+     * Get the user's initials for avatar fallback
+     */
+    public function getInitialsAttribute(): string
+    {
+        $names = explode(' ', $this->name);
+        $initials = '';
+        
+        foreach ($names as $name) {
+            $initials .= strtoupper(substr($name, 0, 1));
+            if (strlen($initials) >= 2) break;
+        }
+        
+        return $initials;
+    }
+
+    /**
+     * Get the full URL for the user's avatar
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar) {
+            return null;
+        }
+        
+        return str_starts_with($this->avatar, 'http') 
+            ? $this->avatar 
+            : asset('storage/' . $this->avatar);
     }
 }

@@ -10,6 +10,7 @@ import { Switch } from '../components/ui/switch';
 import { Label } from '../components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { Loader2 } from 'lucide-react';
 import { 
   User, 
   Mail, 
@@ -28,8 +29,21 @@ import {
 } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { checkAuthAndRedirect } from '../utils/authRedirect';
+import { useAuthStore } from '../hooks/useAuthStore';
 
 const Settings = () => {
+  const { user, updateProfile,uploadAvatar } = useAuthStore();
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    bio: '',
+    twitter: '',
+    facebook: '',
+    instagram: '',
+    linkedin: '',
+    avatar: ''
+  });
   const [passwordCurrent, setPasswordCurrent] = useState('');
   const [passwordNew, setPasswordNew] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -38,29 +52,81 @@ const Settings = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is logged in, redirect if not
     checkAuthAndRedirect('/login');
-  }, []);
+    
+    // Initialize form data with user data
+    if (user) {
+       const names = user.name?.split(' ') || [];
+    setFormData({
+      firstName: names[0] || '',
+      lastName: names.slice(1).join(' ') || '',
+      email: user.email || '',
+      bio: user.bio || '',
+      twitter: user.social?.twitter || '',
+      facebook: user.social?.facebook || '',
+      instagram: user.social?.instagram || '',
+      linkedin: user.social?.linkedin || '',
+      avatar: user.avatar || ''
+    });
+    }
+  }, [user]);
 
-  const handleProfileUpdate = (e) => {
+  const handleProfileUpdate = async (e) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!formData.firstName || !formData.email) {
+      toast({
+        title: "Validation Error",
+        description: "First name and email are required",
+        variant: "destructive"
+      });
+      return;
+    }
+  
     setIsProfileUpdating(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsProfileUpdating(false);
+    try {
+      const updatedData = {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        bio: formData.bio,
+        social: {
+          twitter: formData.twitter,
+          facebook: formData.facebook,
+          instagram: formData.instagram,
+          linkedin: formData.linkedin
+        },
+        avatar: formData.avatar
+      };
+  
+      // This will update both backend and frontend state
+      try {
+      await updateProfile(updatedData);
+    } catch (error) {
+      console.error('Profile update failed:', error);
+      // ...
+    }
+      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProfileUpdating(false);
+    }
   };
-
+  
   const handlePasswordUpdate = (e) => {
     e.preventDefault();
     setIsPasswordUpdating(true);
     
-    // Validate passwords
     if (passwordNew !== passwordConfirm) {
       setIsPasswordUpdating(false);
       toast({
@@ -71,7 +137,6 @@ const Settings = () => {
       return;
     }
     
-    // Simulate API call
     setTimeout(() => {
       setIsPasswordUpdating(false);
       setPasswordCurrent('');
@@ -82,6 +147,38 @@ const Settings = () => {
         description: "Your password has been updated successfully.",
       });
     }, 1000);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    try {
+      // Upload to server and get new URL
+      const avatarUrl = await uploadAvatar(file);
+      
+      // Update local form state
+      setFormData(prev => ({
+        ...prev,
+        avatar: avatarUrl
+      }));
+      
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload avatar",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -123,39 +220,79 @@ const Settings = () => {
                   <form onSubmit={handleProfileUpdate} className="space-y-6">
                     <div className="flex flex-col md:flex-row gap-6">
                       <div className="md:w-1/4 flex flex-col items-center space-y-4">
-                        <Avatar className="h-24 w-24">
-                          <AvatarImage src="https://github.com/shadcn.png" alt="Profile picture" />
-                          <AvatarFallback>JD</AvatarFallback>
-                        </Avatar>
-                        <Button variant="outline" size="sm" className="flex items-center gap-2">
-                          <Upload className="h-4 w-4" />
-                          Change Photo
-                        </Button>
+                      <Avatar className="h-24 w-24">
+  <AvatarImage 
+    src={formData.avatar || "https://github.com/shadcn.png"} 
+    alt={`${formData.firstName} ${formData.lastName}`}
+  />
+  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium">
+    {formData.firstName?.charAt(0) || ''}
+    {formData.lastName?.charAt(0) || ''}
+  </AvatarFallback>
+</Avatar>
+<input
+  type="file"
+  id="avatar-upload"
+  accept="image/*"
+  className="hidden"
+  onChange={handleAvatarUpload}
+  disabled={isProfileUpdating}
+/>
+<Button
+  variant="outline"
+  size="sm"
+  className="flex items-center gap-2"
+  asChild
+  disabled={isProfileUpdating}
+>
+  <label htmlFor="avatar-upload">
+    <Upload className="h-4 w-4" />
+    {isProfileUpdating ? 'Uploading...' : 'Change Photo'}
+  </label>
+</Button>
                       </div>
                       
                       <div className="md:w-3/4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="firstName">First Name</Label>
-                            <Input id="firstName" defaultValue="John" />
+                            <Input 
+                              id="firstName" 
+                              name="firstName"
+                              value={formData.firstName}
+                              onChange={handleInputChange}
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="lastName">Last Name</Label>
-                            <Input id="lastName" defaultValue="Doe" />
+                            <Input 
+                              id="lastName" 
+                              name="lastName"
+                              value={formData.lastName}
+                              onChange={handleInputChange}
+                            />
                           </div>
                         </div>
                         
                         <div className="space-y-2">
                           <Label htmlFor="email">Email</Label>
-                          <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                          <Input 
+                            id="email" 
+                            type="email" 
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                          />
                         </div>
                         
                         <div className="space-y-2">
                           <Label htmlFor="bio">Bio</Label>
                           <Textarea 
                             id="bio" 
+                            name="bio"
                             placeholder="Tell us about yourself"
-                            defaultValue="I'm a software developer passionate about supporting innovative projects."
+                            value={formData.bio}
+                            onChange={handleInputChange}
                             className="min-h-32"
                           />
                         </div>
@@ -166,31 +303,40 @@ const Settings = () => {
                             <div className="flex items-center border rounded-md px-3 py-2">
                               <Twitter className="h-5 w-5 text-[#1DA1F2] mr-2" />
                               <Input 
+                                name="twitter"
                                 placeholder="Twitter username" 
-                                defaultValue="johndoe"
+                                value={formData.twitter}
+                                onChange={handleInputChange}
                                 className="border-0 p-0 h-8 focus-visible:ring-0"
                               />
                             </div>
                             <div className="flex items-center border rounded-md px-3 py-2">
                               <Facebook className="h-5 w-5 text-[#4267B2] mr-2" />
                               <Input 
+                                name="facebook"
                                 placeholder="Facebook profile" 
-                                defaultValue="johndoe"
+                                value={formData.facebook}
+                                onChange={handleInputChange}
                                 className="border-0 p-0 h-8 focus-visible:ring-0"
                               />
                             </div>
                             <div className="flex items-center border rounded-md px-3 py-2">
                               <Instagram className="h-5 w-5 text-[#E1306C] mr-2" />
                               <Input 
+                                name="instagram"
                                 placeholder="Instagram username" 
-                                defaultValue="johndoe"
+                                value={formData.instagram}
+                                onChange={handleInputChange}
                                 className="border-0 p-0 h-8 focus-visible:ring-0"
                               />
                             </div>
                             <div className="flex items-center border rounded-md px-3 py-2">
                               <Linkedin className="h-5 w-5 text-[#0077B5] mr-2" />
                               <Input 
+                                name="linkedin"
                                 placeholder="LinkedIn profile" 
+                                value={formData.linkedin}
+                                onChange={handleInputChange}
                                 className="border-0 p-0 h-8 focus-visible:ring-0"
                               />
                             </div>
@@ -200,9 +346,18 @@ const Settings = () => {
                     </div>
                     
                     <div className="flex justify-end">
-                      <Button type="submit" disabled={isProfileUpdating}>
-                        {isProfileUpdating ? 'Saving...' : 'Save Changes'}
-                      </Button>
+                    <Button 
+  type="submit" 
+  disabled={isProfileUpdating}
+  className="min-w-[120px]"
+>
+  {isProfileUpdating ? (
+    <>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      Saving...
+    </>
+  ) : 'Save Changes'}
+</Button>
                     </div>
                   </form>
                 </CardContent>

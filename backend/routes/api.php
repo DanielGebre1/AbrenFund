@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -67,10 +68,17 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
 // Password reset request → forward to SPA
 
-Route::post('/password/email', [PasswordResetController::class, 'sendResetLink']);
-Route::post('/password/reset', [PasswordResetController::class, 'resetPassword']);
-Route::get('/verify-reset-token', [PasswordResetController::class, 'verifyToken']);
+Route::post('/password/email', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetLink']);
+Route::post('/password/reset', [\App\Http\Controllers\Auth\PasswordResetController::class, 'resetPassword']);
+Route::get('/verify-reset-token', [\App\Http\Controllers\Auth\PasswordResetController::class, 'verifyToken']);
 
 
 // Admin routes
 Route::middleware(['auth:sanctum', 'admin'])->get('/admin-dashboard', [ProjectController::class, 'adminDashboard']);
+
+
+//Change Profile
+Route::middleware('auth:sanctum')->group(function () {
+    Route::put('/profile', [ProfileController::class, 'updateProfile']);
+    Route::post('/upload-avatar', [ProfileController::class, 'uploadAvatar']);
+});

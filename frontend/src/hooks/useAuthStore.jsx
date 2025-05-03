@@ -1,5 +1,4 @@
 // stores/authStore.js
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
@@ -16,6 +15,7 @@ export const useAuthStore = create(
       isInitialized: false,
       theme: 'light',
 
+      // Existing functions remain unchanged
       setAuthData: (authData) => {
         set({
           isLoggedIn: authData.isLoggedIn,
@@ -148,6 +148,66 @@ export const useAuthStore = create(
       },
 
       setTheme: (theme) => set({ theme }),
+
+      // NEW: Profile update functionality
+      updateProfile: async (updatedData) => {
+        set({ isLoading: true });
+        try {
+          const { token } = get();
+          const { data } = await api.put('/api/profile', updatedData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          // Update local storage and state
+          localStorage.setItem('userData', JSON.stringify(data.user));
+          set({ user: data.user });
+
+          toast.success('Profile updated successfully!');
+          return data.user;
+        } catch (error) {
+          console.error('Profile update error:', error);
+          const msg = error.response?.data?.message || 'Failed to update profile';
+          toast.error(msg);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      // NEW: Avatar upload functionality
+      uploadAvatar: async (file) => {
+        set({ isLoading: true });
+        try {
+          const { token } = get();
+          const formData = new FormData();
+          formData.append('avatar', file);
+
+          const { data } = await api.post('/api/upload-avatar', formData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+
+          // Update local storage and state
+          const updatedUser = { ...get().user, avatar: data.url };
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
+          set({ user: updatedUser });
+
+          toast.success('Profile picture updated!');
+          return data.url;
+        } catch (error) {
+          console.error('Avatar upload error:', error);
+          const msg = error.response?.data?.message || 'Failed to upload avatar';
+          toast.error(msg);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
     }),
     {
       name: 'auth',

@@ -1,6 +1,6 @@
 import { Button } from "./ui/button";
 import { DollarSign, Users, Briefcase, Award } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link , useNavigate} from "react-router-dom";
 import { checkAuthAndRedirect } from "../utils/authRedirect";
 
 const stats = [
@@ -31,9 +31,10 @@ const stats = [
 ];
 
 const Stats = () => {
+  const navigate = useNavigate();
   const handleStartCampaign = () => {
     if (checkAuthAndRedirect('/login')) {
-      window.location.href = '/creator-dashboard';
+      navigate('/creator-dashboard');
     }
   };
 
