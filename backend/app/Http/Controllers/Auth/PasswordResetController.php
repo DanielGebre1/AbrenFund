@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;  // Added proper import
+use App\Models\PasswordResetToken;  // Added proper import
 use App\Services\PasswordResetService;
 use Illuminate\Http\Request;
-use App\Models\PasswordResetToken;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 class PasswordResetController extends Controller
 {
@@ -21,31 +22,35 @@ class PasswordResetController extends Controller
     }
 
     /**
-     * Send password reset link to user's email
+     * Send password reset link
      */
     public function sendResetLink(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'email' => 'required|email|max:255',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
         try {
             $email = $request->input('email');
-            $this->passwordResetService->sendResetLink($email);
-
-            Log::channel('auth')->info('Password reset link sent', [
-                'email' => $email,
-                'ip' => $request->ip(),
-                'timestamp' => now()->toDateTimeString()
-            ]);
+            $success = $this->passwordResetService->sendResetLink($email);
 
             return response()->json([
-                'success' => true,
-                'message' => 'If the email is associated with an account, a password reset link has been sent.'
-            ], 200);
+                'success' => $success,
+                'message' => $success 
+                    ? 'If the email is associated with an account, a password reset link has been sent.'
+                    : 'Failed to send password reset link. Please try again later.'
+            ], $success ? 200 : 500);
 
         } catch (\Exception $e) {
-            Log::channel('auth')->error('Password reset link failed', [
+            Log::channel('auth')->error('Password reset link endpoint error', [
                 'email' => $request->input('email'),
                 'error' => $e->getMessage(),
                 'ip' => $request->ip()
@@ -53,7 +58,7 @@ class PasswordResetController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process password reset request. Please try again later.'
+                'message' => 'An unexpected error occurred. Please try again later.'
             ], 500);
         }
     }
@@ -63,31 +68,43 @@ class PasswordResetController extends Controller
      */
     public function verifyToken(Request $request)
     {
-       
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'email' => 'required|email|max:255',
             'token' => 'required|string',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
         try {
-            $record = PasswordResetToken::where('email', $request->email)->first();
+            $email = $request->input('email');
+            $token = $request->input('token');
+
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                return response()->json([
+                    'valid' => false,
+                    'message' => 'No account found with this email.'
+                ], 404);
+            }
+
+            $record = PasswordResetToken::where('email', $email)
+                ->latest('created_at')
+                ->first();
 
             if (!$record) {
-                Log::channel('auth')->warning('Password reset token verification failed - no record', [
-                    'email' => $request->email,
-                    'ip' => $request->ip()
-                ]);
                 return response()->json([
                     'valid' => false,
                     'message' => 'No password reset request found for this email.'
                 ], 404);
             }
 
-            if (!Hash::check($request->token, $record->token)) {
-                Log::channel('auth')->warning('Password reset token verification failed - invalid token', [
-                    'email' => $request->email,
-                    'ip' => $request->ip()
-                ]);
+            if (!Hash::check($token, $record->token)) {
                 return response()->json([
                     'valid' => false,
                     'message' => 'Invalid reset token.'
@@ -95,11 +112,6 @@ class PasswordResetController extends Controller
             }
 
             if ($record->expires_at->isPast()) {
-                Log::channel('auth')->warning('Password reset token verification failed - expired token', [
-                    'email' => $request->email,
-                    'ip' => $request->ip(),
-                    'expired_at' => $record->expires_at
-                ]);
                 return response()->json([
                     'valid' => false,
                     'message' => 'Reset token has expired. Please request a new one.'
@@ -110,11 +122,11 @@ class PasswordResetController extends Controller
                 'valid' => true,
                 'message' => 'Token is valid',
                 'expires_at' => $record->expires_at
-            ], 200);
+            ]);
 
         } catch (\Exception $e) {
-            Log::channel('auth')->error('Password reset token verification error', [
-                'email' => $request->email,
+            Log::channel('auth')->error('Token verification error', [
+                'email' => $request->input('email'),
                 'error' => $e->getMessage(),
                 'ip' => $request->ip()
             ]);
@@ -131,44 +143,37 @@ class PasswordResetController extends Controller
      */
     public function resetPassword(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'email' => 'required|email|max:255',
             'token' => 'required|string',
             'password' => 'required|string|min:8|confirmed|max:255',
         ]);
 
-        try {
-            $resetSuccess = $this->passwordResetService->resetPassword(
-                $request->email,
-                $request->token,
-                $request->password
-            );
-
-            if ($resetSuccess) {
-                Log::channel('auth')->info('Password reset successful', [
-                    'email' => $request->email,
-                    'ip' => $request->ip()
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Password has been reset successfully.'
-                ], 200);
-            }
-
-            Log::channel('auth')->warning('Password reset failed', [
-                'email' => $request->email,
-                'ip' => $request->ip()
-            ]);
-
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid token or password reset failed.'
-            ], 400);
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $success = $this->passwordResetService->resetPassword(
+                $request->input('email'),
+                $request->input('token'),
+                $request->input('password')
+            );
+
+            return response()->json([
+                'success' => $success,
+                'message' => $success 
+                    ? 'Password has been reset successfully.'
+                    : 'Invalid token or password reset failed.'
+            ], $success ? 200 : 400);
 
         } catch (\Exception $e) {
-            Log::channel('auth')->error('Password reset error', [
-                'email' => $request->email,
+            Log::channel('auth')->error('Password reset endpoint error', [
+                'email' => $request->input('email'),
                 'error' => $e->getMessage(),
                 'ip' => $request->ip()
             ]);
