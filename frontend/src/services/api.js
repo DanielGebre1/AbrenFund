@@ -38,87 +38,66 @@ api.interceptors.response.use(
   response => response,
   error => {
     const { response } = error;
-    
-    // Handle specific status codes
+
     if (response) {
       switch (response.status) {
-        case 401: // Unauthorized
+        case 401:
           localStorage.removeItem('authToken');
           localStorage.removeItem('userData');
           toast.error('Session expired. Please log in again.');
-          window.location.href = '/login';
+          // window.location.href = '/login';
           break;
-          
-        case 403: // Forbidden
+
+        case 403:
           toast.error('You are not authorized to perform this action');
           break;
-          
-        case 422: // Validation errors
-          // Handled in specific components
+
+        case 422:
+          // Validation errors handled in specific components
           break;
-          
-        case 500: // Server error
+
+        case 500:
           toast.error('Server error occurred. Please try again later.');
           break;
-          
+
         default:
           toast.error(response.data?.message || 'An error occurred');
       }
     } else {
       toast.error('Network error. Please check your connection.');
     }
-    
+
     return Promise.reject(error);
   }
 );
 
+// -------------------------
 // Auth Service Methods
+// -------------------------
 export const AuthService = {
-  /**
-   * Request password reset link
-   * @param {string} email 
-   * @returns Promise
-   */
   async requestResetLink(email) {
     try {
       const response = await api.post('/api/password/email', { email });
       toast.success('If an account exists, a reset link has been sent');
       return response.data;
     } catch (error) {
-      // Error already handled by interceptor
       throw error;
     }
   },
-  
-  /**
-   * Reset user password
-   * @param {object} data 
-   * @param {string} data.token
-   * @param {string} data.email
-   * @param {string} data.password
-   * @param {string} data.password_confirmation
-   * @returns Promise
-   */
+
   async resetPassword(data) {
     try {
       const response = await api.post('/reset-password', data);
       toast.success('Password reset successfully');
       return response.data;
     } catch (error) {
-      // Special handling for validation errors
       if (error.response?.status === 422) {
         throw error.response.data.errors;
       }
       throw error;
     }
   },
-  
-  /**
-   * Verify reset token validity
-   * @param {string} token 
-   * @param {string} email 
-   * @returns Promise<{valid: boolean}>
-   */
+
   async verifyResetToken(token, email) {
     try {
       const response = await api.get(
@@ -134,4 +113,26 @@ export const AuthService = {
   }
 };
 
+// -------------------------
+// Campaign Service Methods
+// -------------------------
+export const CampaignService = {
+  /**
+   * Create a new campaign
+   * @param {object} data - Campaign data including images
+   * @returns {Promise}
+   */
+  async createCampaign(data) {
+    try {
+      const response = await api.post('/api/campaigns', data);
+      toast.success('Campaign submitted successfully');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
 export default api;
+
+

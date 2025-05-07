@@ -22,6 +22,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import PaymentPage from "./pages/PaymentPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import CreatorDashboard from "./pages/CreatorDashboard";
+import ModeratorDashboard from "./pages/ModeratorDashboard";
 import CreateCampaign from "./pages/CreateCampaign";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
@@ -32,6 +33,7 @@ import FundraisingGuides from "./pages/FundraisingGuides";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { ResetPassword, ResetPasswordSuccess } from "./pages/ResetPassword";
+import ChallengeDetail from "./pages/ChallengeDetail";
 
 // Routes
 import PrivateRoute from "./routes/PrivateRoute";
@@ -68,6 +70,7 @@ const App = () => (
             <Route path="/reset-password/success" element={<ResetPasswordSuccess />} />
             <Route path="/success-stories" element={<SuccessStories />} />
             <Route path="/project/:id" element={<ProjectDetail />} />
+            <Route path="/challenge/:id" element={<ChallengeDetail />} />
             <Route path="/support" element={<Support />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/guides" element={<FundraisingGuides />} />
@@ -78,8 +81,9 @@ const App = () => (
             <Route path="/payment/:id" element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
             <Route path="/payment" element={<PrivateRoute><PaymentPage /></PrivateRoute>} />
             <Route path="/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
-            <Route path="/admin-dashboard" element={<PrivateRoute roles={['admin']}><AdminDashboard /></PrivateRoute>} />
-            <Route path="/creator-dashboard" element={<PrivateRoute ><CreatorDashboard /></PrivateRoute>} />
+            <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+            <Route path="/creator-dashboard/*" element={<PrivateRoute ><CreatorDashboard /></PrivateRoute>} />
+            <Route path="/moderator-dashboard/*" element={<ModeratorDashboard />} />
             <Route path="/create-campaign" element={<PrivateRoute ><CreateCampaign /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
             <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />

@@ -69,7 +69,7 @@ class ProjectPolicy
      */
     public function review(User $user)
 {
-    return $user->isReviewer() || $user->isAdmin();
+    return $user->isModerator() || $user->isAdmin();
 }
 
     

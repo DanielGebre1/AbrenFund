@@ -7,6 +7,7 @@ import {
   User,
   Bell,
   Shield,
+  LayoutDashboard
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -60,10 +61,20 @@ const UserProfileDropdown = ({ onLogout }) => {
         {role === 'admin' && (
           <Link to="/admin-dashboard">
             <DropdownMenuItem className="cursor-pointer">
-              <Shield className="h-4 w-4 mr-2" />
+            <LayoutDashboard className="h-4 w-4 mr-2" />
               Admin Dashboard
             </DropdownMenuItem>
           </Link>
+        )}
+
+        
+        {(role === 'admin' || role === 'moderator') && (
+         <Link to="/moderator-dashboard">
+          <DropdownMenuItem className="cursor-pointer">
+           <Shield className="h-4 w-4 mr-2" />
+             Moderator Dashboard
+           </DropdownMenuItem>
+         </Link>
         )}
 
         <Link to="/creator-dashboard">

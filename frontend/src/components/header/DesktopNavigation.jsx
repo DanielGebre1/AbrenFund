@@ -16,7 +16,7 @@ const DesktopNavigation = ({ onSearchClick, user }) => {
       <nav className="hidden md:flex items-center space-x-6">
         <Link to="/" className="text-foreground hover:text-primary font-medium transition">Home</Link>
         <Link to="/explore" className="text-foreground hover:text-primary font-medium transition">Explore</Link>
-        <Link to="/how-it-works" className="text-foreground hover:text-primary font-medium transition">How It Works</Link>
+        <Link to="/how-it-works" className="text-foreground hover:text-primary font-medium transition">Help</Link>
         <Link to="/about" className="text-foreground hover:text-primary font-medium transition">About</Link>
       </nav>
 

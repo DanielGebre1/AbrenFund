@@ -64,18 +64,26 @@ export const useAuthStore = create(
       logout: async () => {
         set({ isLoading: true });
         try {
-          await api.post('/api/logout');
+          const token = localStorage.getItem('authToken');
+          if (token) {
+            await api.post('/api/logout', null, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+          }
         } catch (err) {
           console.warn('Logout error:', err);
         } finally {
           set({ theme: 'light' });
-          localStorage.removeItem('auth-token');
+          localStorage.removeItem('authToken');
           localStorage.removeItem('userData');
           set({ isLoggedIn: false, user: null, token: null, role: null });
           toast.success('Logged out successfully!');
           set({ isLoading: false });
         }
-      },
+      }
+      ,
 
       register: async (userData) => {
         set({ isLoading: true });
