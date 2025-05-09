@@ -7,22 +7,38 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card } from "../ui/card";
 import { useUserRole } from "../../hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../hooks/useAuthStore";
 
 const DashboardLayout = ({ children, type }) => {
   const [showProfile, setShowProfile] = useState(false);
   const { role, logout } = useUserRole();
   const navigate = useNavigate();
+  const { user, logout: authLogout } = useAuthStore();
   
   const handleEditProfile = () => {
     setShowProfile(false);
     navigate('/settings');
   };
 
-  const handleSignOut = () => {
-    logout();
-    navigate('/');
+  const handleSignOut = async () => {
+    try {
+      await authLogout(); // Use the auth store logout which handles all cleanup
+      logout(); // Also call the role-based logout if needed
+      navigate('/');
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
-  
+
+  // Get user initials for fallback avatar
+  const getUserInitials = () => {
+    if (!user?.name) return 'U';
+    const names = user.name.split(' ');
+    return names.length > 1 
+      ? `${names[0][0]}${names[names.length - 1][0]}` 
+      : names[0][0];
+  };
+
   return (
     <div className="h-screen">
       <SidebarProvider>
@@ -45,8 +61,8 @@ const DashboardLayout = ({ children, type }) => {
                   className="h-8 w-8 cursor-pointer" 
                   onClick={() => setShowProfile(!showProfile)}
                 >
-                  <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                  <AvatarFallback>U</AvatarFallback>
+                  <AvatarImage src={user?.avatar} alt={user?.name || "User"} />
+                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
                 </Avatar>
               </div>
               
@@ -67,15 +83,15 @@ const DashboardLayout = ({ children, type }) => {
                     
                     <div className="flex items-center gap-4 my-4">
                       <Avatar className="h-16 w-16">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                        <AvatarFallback>U</AvatarFallback>
+                        <AvatarImage src={user?.avatar} alt={user?.name || "User"} />
+                        <AvatarFallback>{getUserInitials()}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <h4 className="font-semibold">John Doe</h4>
-                        <p className="text-sm text-muted-foreground">john.doe@example.com</p>
+                        <h4 className="font-semibold">{user?.name || "User"}</h4>
+                        <p className="text-sm text-muted-foreground">{user?.email || "No email"}</p>
                         <div className="mt-1">
                           <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full capitalize">
-                            {role}
+                            {role || user?.role || "user"}
                           </span>
                         </div>
                       </div>

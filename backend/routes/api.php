@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\API\CampaignController;
+use App\Http\Controllers\VerificationController;
 
 
 /*
@@ -81,4 +84,39 @@ Route::middleware(['auth:sanctum', 'admin'])->get('/admin-dashboard', [ProjectCo
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/profile', [ProfileController::class, 'updateProfile']);
     Route::post('/upload-avatar', [ProfileController::class, 'uploadAvatar']);
+});
+
+
+
+//admin user
+Route::get('/users', [UserController::class, 'index']);
+Route::post('/users', [UserController::class, 'store']);
+Route::put('/users/{id}', [UserController::class, 'update']);
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
+Route::post('/users', [UserController::class, 'store']);
+
+//idverification
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/verification/submit', [VerificationController::class, 'submitVerification']);
+    Route::get('/verification/status', [VerificationController::class, 'getVerificationStatus']);
+});
+
+// Admin endpoints
+    Route::middleware(['admin'])->prefix('admin')->group(function () {
+        Route::get('/verifications', [VerificationController::class, 'index']);
+        Route::get('/verifications/{verification}', [VerificationController::class, 'show']);
+        Route::put('/verifications/{verification}/approve', [VerificationController::class, 'approve']);
+        Route::put('/verifications/{verification}/reject', [VerificationController::class, 'reject']);
+    });
+    
+    // Moderator endpoints
+    Route::middleware(['moderator'])->prefix('moderator')->group(function () {
+        Route::get('/verifications', [VerificationController::class, 'index']);
+        Route::get('/verifications/{verification}', [VerificationController::class, 'show']);
+        Route::put('/verifications/{verification}/approve', [VerificationController::class, 'approve']);
+        Route::put('/verifications/{verification}/reject', [VerificationController::class, 'reject']);
+    });
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/campaigns', [\App\Http\Controllers\API\CampaignController::class, 'store']);
 });

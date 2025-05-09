@@ -15,7 +15,6 @@ export const useAuthStore = create(
       isInitialized: false,
       theme: 'light',
 
-      // Existing functions remain unchanged
       setAuthData: (authData) => {
         set({
           isLoggedIn: authData.isLoggedIn,
@@ -31,21 +30,24 @@ export const useAuthStore = create(
           await api.get('/sanctum/csrf-cookie');
           const { data } = await api.post('/api/login', credentials);
           const { token: authToken, user: userData } = data;
+          
+          // Normalize user data structure
+          const normalizedUser = userData.me || userData;
 
-          if (!userData.email_verified_at) {
+          if (!normalizedUser.email_verified_at) {
             toast.warning('Please verify your email before logging in.');
             set({ isLoading: false });
             return false;
           }
 
           localStorage.setItem('auth-token', authToken);
-          localStorage.setItem('userData', JSON.stringify(userData));
+          localStorage.setItem('userData', JSON.stringify(normalizedUser));
 
           set({
             isLoggedIn: true,
-            user: userData,
+            user: normalizedUser,
             token: authToken,
-            role: userData.role || null,
+            role: normalizedUser.role || null,
           });
 
           toast.success('Login successful!');
@@ -64,7 +66,7 @@ export const useAuthStore = create(
       logout: async () => {
         set({ isLoading: true });
         try {
-          const token = localStorage.getItem('authToken');
+          const token = localStorage.getItem('auth-token');
           if (token) {
             await api.post('/api/logout', null, {
               headers: {
@@ -76,14 +78,13 @@ export const useAuthStore = create(
           console.warn('Logout error:', err);
         } finally {
           set({ theme: 'light' });
-          localStorage.removeItem('authToken');
+          localStorage.removeItem('auth-token');
           localStorage.removeItem('userData');
           set({ isLoggedIn: false, user: null, token: null, role: null });
           toast.success('Logged out successfully!');
           set({ isLoading: false });
         }
-      }
-      ,
+      },
 
       register: async (userData) => {
         set({ isLoading: true });
@@ -128,15 +129,20 @@ export const useAuthStore = create(
         }
 
         try {
-          const { data: user } = await api.get('/api/me', {
+          const { data } = await api.get('/api/me', {
             headers: { Authorization: `Bearer ${storedToken}` },
           });
 
+          // Normalize user data structure
+          const normalizedUser = data.me || data;
+
+          localStorage.setItem('userData', JSON.stringify(normalizedUser));
+
           set({
             isLoggedIn: true,
-            user,
+            user: normalizedUser,
             token: storedToken,
-            role: user.role || null,
+            role: normalizedUser.role || null,
             theme: localStorage.getItem('theme') || 'light',
           });
         } catch (error) {
@@ -157,7 +163,6 @@ export const useAuthStore = create(
 
       setTheme: (theme) => set({ theme }),
 
-      // NEW: Profile update functionality
       updateProfile: async (updatedData) => {
         set({ isLoading: true });
         try {
@@ -169,12 +174,14 @@ export const useAuthStore = create(
             },
           });
 
-          // Update local storage and state
-          localStorage.setItem('userData', JSON.stringify(data.user));
-          set({ user: data.user });
+          // Normalize user data structure
+          const normalizedUser = data.user || data;
+
+          localStorage.setItem('userData', JSON.stringify(normalizedUser));
+          set({ user: normalizedUser });
 
           toast.success('Profile updated successfully!');
-          return data.user;
+          return normalizedUser;
         } catch (error) {
           console.error('Profile update error:', error);
           const msg = error.response?.data?.message || 'Failed to update profile';
@@ -185,7 +192,6 @@ export const useAuthStore = create(
         }
       },
 
-      // NEW: Avatar upload functionality
       uploadAvatar: async (file) => {
         set({ isLoading: true });
         try {
@@ -200,8 +206,12 @@ export const useAuthStore = create(
             },
           });
 
-          // Update local storage and state
-          const updatedUser = { ...get().user, avatar: data.url };
+          const currentUser = get().user;
+          const updatedUser = { 
+            ...currentUser, 
+            avatar: data.url 
+          };
+
           localStorage.setItem('userData', JSON.stringify(updatedUser));
           set({ user: updatedUser });
 

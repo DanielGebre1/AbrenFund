@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -25,14 +26,16 @@ import {
   Instagram,
   Twitter,
   Facebook,
-  Linkedin
+  Linkedin,
+  BadgeCheck,
+  BadgeAlert
 } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { checkAuthAndRedirect } from '../utils/authRedirect';
 import { useAuthStore } from '../hooks/useAuthStore';
 
 const Settings = () => {
-  const { user, updateProfile,uploadAvatar } = useAuthStore();
+  const { user, updateProfile, uploadAvatar, verifyIdentity } = useAuthStore();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -49,6 +52,8 @@ const Settings = () => {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [isProfileUpdating, setIsProfileUpdating] = useState(false);
   const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(user?.verificationStatus || 'unverified');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,6 +73,7 @@ const Settings = () => {
       linkedin: user.social?.linkedin || '',
       avatar: user.avatar || ''
     });
+    setVerificationStatus(user.verificationStatus || 'unverified');
     }
   }, [user]);
 
@@ -178,6 +184,66 @@ const Settings = () => {
         description: error.message || "Failed to upload avatar",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleStartVerification = async () => {
+    setIsVerifying(true);
+    try {
+      // This would typically redirect to a verification service or open a modal
+      // For this example, we'll simulate a verification process
+      const result = await verifyIdentity();
+      
+      if (result.success) {
+        setVerificationStatus('pending');
+        toast({
+          title: "Verification started",
+          description: "Please complete the verification process. We'll notify you when your ID is verified.",
+        });
+      } else {
+        throw new Error(result.message || "Failed to start verification");
+      }
+    } catch (error) {
+      toast({
+        title: "Verification Error",
+        description: error.message || "Failed to start verification process",
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const renderVerificationStatus = () => {
+    switch (verificationStatus) {
+      case 'verified':
+        return (
+          <div className="flex items-center gap-2 text-green-600">
+            <BadgeCheck className="h-5 w-5" />
+            <span>Verified</span>
+          </div>
+        );
+      case 'pending':
+        return (
+          <div className="flex items-center gap-2 text-yellow-600">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Verification in progress</span>
+          </div>
+        );
+      case 'rejected':
+        return (
+          <div className="flex items-center gap-2 text-red-600">
+            <BadgeAlert className="h-5 w-5" />
+            <span>Verification rejected</span>
+          </div>
+        );
+      default:
+        return (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <BadgeAlert className="h-5 w-5" />
+            <span>Not verified</span>
+          </div>
+        );
     }
   };
 
@@ -365,6 +431,59 @@ const Settings = () => {
             </TabsContent>
             
             <TabsContent value="account" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Identity Verification</CardTitle>
+                  <CardDescription>
+                    Verify your identity to access all platform features
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-full bg-primary/10">
+                        <Shield className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium">Identity Verification</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {verificationStatus === 'verified' 
+                            ? 'Your identity has been successfully verified.'
+                            : verificationStatus === 'pending'
+                            ? 'Your verification is being processed.'
+                            : 'Verify your identity to unlock all features.'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex items-center">
+                        {renderVerificationStatus()}
+                      </div>
+                      {verificationStatus !== 'verified' && (
+                        <Button 
+                          onClick={handleStartVerification}
+                          disabled={isVerifying || verificationStatus === 'pending'}
+                          className="whitespace-nowrap"
+                        >
+                          {isVerifying ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : verificationStatus === 'pending' ? (
+                            'Verification Pending'
+                          ) : verificationStatus === 'rejected' ? (
+                            'Retry Verification'
+                          ) : (
+                            'Verify Identity'
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Change Password</CardTitle>

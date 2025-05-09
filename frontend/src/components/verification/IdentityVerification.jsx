@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -7,8 +8,10 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { Upload, FileCheck, Plus, Info, User, Building, FileText, CreditCard } from "lucide-react";
 import { useToast } from "../../hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { VerificationService } from "../../services/api";
 
 const IdentityVerification = ({ onVerificationComplete }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("individual");
   const [documentType, setDocumentType] = useState("national-id");
   const [idFrontFile, setIdFrontFile] = useState(null);
@@ -17,7 +20,43 @@ const IdentityVerification = ({ onVerificationComplete }) => {
   const [companyDocFiles, setCompanyDocFiles] = useState([]);
   const [businessLicenseFiles, setBusinessLicenseFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const checkVerificationStatus = async () => {
+      try {
+        setIsLoadingStatus(true);
+        const status = await VerificationService.getVerificationStatus();
+        setVerificationStatus(status);
+        
+        // If status is approved, trigger the redirect
+        if (status?.status === "approved") {
+          if (onVerificationComplete) {
+            onVerificationComplete();
+          } else {
+            navigate("/create-campaign");
+          }
+        }
+      } catch (error) {
+        console.error("Error checking verification status:", error);
+      } finally {
+        setIsLoadingStatus(false);
+      }
+    };
+
+    checkVerificationStatus();
+    
+    // Set up polling for status updates if pending
+    const intervalId = setInterval(() => {
+      if (verificationStatus?.status === "pending") {
+        checkVerificationStatus();
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [verificationStatus?.status, navigate, onVerificationComplete]);
 
   const handleSingleFileUpload = (e, setFile) => {
     if (e.target.files && e.target.files[0]) {
@@ -38,21 +77,46 @@ const IdentityVerification = ({ onVerificationComplete }) => {
     setFiles(newFiles);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    const formData = new FormData();
+    formData.append("type", activeTab);
+    
+    if (activeTab === "individual") {
+      formData.append("document_type", documentType);
+      formData.append("id_front", idFrontFile);
+      formData.append("id_back", idBackFile);
+      addressProofFiles.forEach((file) => {
+        formData.append("address_proofs[]", file);
+      });
+    } else {
+      companyDocFiles.forEach((file) => {
+        formData.append("company_docs[]", file);
+      });
+      businessLicenseFiles.forEach((file) => {
+        formData.append("business_licenses[]", file);
+      });
+    }
+
+    try {
+      await VerificationService.submitVerification(formData);
+      setVerificationStatus({ status: "pending" });
       toast({
         title: "Verification submitted",
-        description: "Your verification documents have been submitted for review. We'll notify you once the verification is complete.",
+        description: "Your documents are under review. We'll notify you when the verification is complete.",
       });
-      
-      if (onVerificationComplete) {
-        onVerificationComplete();
-      }
-    }, 2000);
+    } catch (error) {
+      console.error("Verification submission error:", error);
+      toast({
+        title: "Submission failed",
+        description: error.message || "There was an error submitting your documents. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getDocumentTypeIcon = () => {
@@ -85,6 +149,136 @@ const IdentityVerification = ({ onVerificationComplete }) => {
   const companyComplete = companyDocFiles.length > 0 && businessLicenseFiles.length > 0;
   const isComplete = activeTab === "individual" ? individualComplete : companyComplete;
 
+  const renderStatusAlert = () => {
+    if (isLoadingStatus) {
+      return (
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Loading verification status...
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (isSubmitting) {
+      return (
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Submitting your verification documents...
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (verificationStatus?.status === "pending") {
+      return (
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Your verification is currently under review. This process may take up to 24 hours.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (verificationStatus?.status === "rejected") {
+      return (
+        <Alert variant="destructive" className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            {verificationStatus.message || "Your verification was rejected. Please review the requirements and submit again."}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (verificationStatus?.status === "error") {
+      return (
+        <Alert variant="destructive" className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            {verificationStatus.message || "An error occurred during verification."}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    return null;
+  };
+
+  if (isLoadingStatus) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Identity Verification</CardTitle>
+          <CardDescription>
+            Loading verification status...
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center">
+          <div className="animate-pulse">
+            <div className="h-8 w-8 rounded-full bg-gray-200"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (verificationStatus?.status === "approved") {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Identity Verification</CardTitle>
+          <CardDescription>
+            Your identity verification has been approved
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="success">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Your verification is complete. You will be redirected to create a campaign shortly.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 flex justify-center">
+            <Button onClick={() => navigate("/create-campaign")}>
+              Go to Create Campaign
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (verificationStatus?.status === "pending") {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Identity Verification</CardTitle>
+          <CardDescription>
+            Your verification is currently under review
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {renderStatusAlert()}
+          <div className="space-y-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                We're reviewing your submitted documents. You'll receive a notification once the verification is complete.
+              </AlertDescription>
+            </Alert>
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -94,6 +288,8 @@ const IdentityVerification = ({ onVerificationComplete }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {renderStatusAlert()}
+
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)}>
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="individual" className="flex items-center gap-2">
@@ -105,7 +301,7 @@ const IdentityVerification = ({ onVerificationComplete }) => {
               Company Verification
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="individual">
             <form onSubmit={handleSubmit} className="space-y-6">
               <Alert>

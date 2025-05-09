@@ -6,6 +6,7 @@ import ModeratorReviewProjects from "../components/dashboard/moderator/Moderator
 import ModeratorReviewProposals from "../components/dashboard/moderator/ModeratorReviewProposals";
 import ModeratorChallenges from "../components/dashboard/moderator/ModeratorChallenges";
 import ModeratorSettings from "../components/dashboard/moderator/ModeratorSettings";
+import ModeratorVerifications from "../components/dashboard/moderator/ModeratorVerifications";
 
 const ModeratorDashboard = () => {
   return (
@@ -15,6 +16,7 @@ const ModeratorDashboard = () => {
         <Route path="/review" element={<ModeratorReviewProjects />} />
         <Route path="/proposals" element={<ModeratorReviewProposals />} />
         <Route path="/challenges" element={<ModeratorChallenges />} />
+        <Route path="/verifications" element={<ModeratorVerifications />} />
         <Route path="/settings" element={<ModeratorSettings />} />
         <Route path="*" element={<Navigate to="/moderator-dashboard" replace />} />
       </Routes>

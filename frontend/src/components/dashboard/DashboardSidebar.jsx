@@ -8,16 +8,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarProvider,
   SidebarHeader,
   SidebarFooter,
-  SidebarTrigger,
 } from "../ui/sidebar";
-import { HeartHandshake, Users, PieChart, FileText, Briefcase, Award, Settings, MessageSquare, BarChart, Target, Trophy } from "lucide-react";
+import { HeartHandshake, Users, PieChart, FileText, Briefcase, Award, Settings, MessageSquare, BarChart, Trophy } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { useIsMobile } from "../../hooks/use-mobile";
-import { SheetTitle, SheetDescription} from "../ui/sheet";
+import { SheetTitle } from "../ui/sheet";
 
 export const DashboardSidebar = ({ type }) => {
   const location = useLocation();
@@ -81,6 +79,11 @@ export const DashboardSidebar = ({ type }) => {
           icon: Users,
         },
         {
+          title: "Verifications",
+          url: "/verifications",
+          icon: FileText,
+        },
+        {
           title: "All Projects",
           url: "/projects",
           icon: FileText,
@@ -96,6 +99,11 @@ export const DashboardSidebar = ({ type }) => {
     // Moderator menu items
     return [
       ...commonItems,
+      {
+        title: "Verifications",
+        url: "/verifications",
+        icon: FileText,
+      },
       {
         title: "Review Projects",
         url: "/review",

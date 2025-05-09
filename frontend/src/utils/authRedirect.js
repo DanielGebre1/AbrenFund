@@ -1,15 +1,27 @@
-// This is a simple utility to check if user is logged in and redirect if needed
-// In a real app, this would use your authentication system
+// authRedirect.js
+import { useAuthStore } from '../hooks/useAuthStore';
 
-export const checkAuthAndRedirect = (redirectPath) => {
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  
-  if (!isLoggedIn) {
-    window.location.href = redirectPath;
-    return false;
-  }
+export const checkAuthAndRedirect = (redirectPath = '/login') => {
+  const { isInitialized, isLoggedIn, checkAuth } = useAuthStore.getState();
 
+  return new Promise(async (resolve) => {
+    if (!isInitialized) {
+      await checkAuth();
+    }
 
-  
-  return true;
+    const { isLoggedIn: loggedIn } = useAuthStore.getState();
+
+    if (!loggedIn) {
+      window.location.href = redirectPath;
+      resolve(false);
+    } else {
+      resolve(true);
+    }
+  });
+};
+
+// Simple synchronous check
+export const getAuthState = () => {
+  const { isInitialized, isLoggedIn, user, role, token } = useAuthStore.getState();
+  return { isInitialized, isLoggedIn, user, role, token };
 };

@@ -2,17 +2,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProjectForm from '../components/campaign/ProjectForm';
+import ChallengeForm from '../components/campaign/ChallengeForm';
 import IdentityVerification from '../components/verification/IdentityVerification';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Loader2 } from 'lucide-react';
-import { CampaignService } from '../services/api'; // ✅ Added service import
+import { CampaignService } from '../services/api';
 
 const CreateCampaign = () => {
   const [images, setImages] = useState([]);
   const [isVerified, setIsVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [campaignType, setCampaignType] = useState('project'); // 'project' or 'challenge'
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthStore();
 
@@ -46,11 +48,12 @@ const CreateCampaign = () => {
 
       const payload = {
         ...values,
-        images, // base64 images
+        images,
+        type: campaignType, // include the campaign type
       };
 
       await CampaignService.createCampaign(payload);
-      toast.success('Project campaign submitted for review');
+      toast.success('Campaign submitted for review');
       navigate('/creator-dashboard');
     } catch (error) {
       console.error('Submission failed:', error);
@@ -61,7 +64,7 @@ const CreateCampaign = () => {
         toast.error('Failed to submit campaign. Please try again.');
       }
     }
-  }, [images, navigate]);
+  }, [images, navigate, campaignType]);
 
   const handleImageUpload = useCallback((e) => {
     if (e.target.files && e.target.files[0]) {
@@ -115,7 +118,7 @@ const CreateCampaign = () => {
       <main className="flex-grow py-12">
         <div className="container mx-auto px-4 max-w-4xl">
           <h1 className="text-3xl font-bold mb-2">Create New Campaign</h1>
-          <p className="text-muted-foreground mb-8">Launch your fundraising campaign</p>
+          <p className="text-muted-foreground mb-6">Launch your fundraising or challenge campaign</p>
 
           {!isVerified ? (
             <div className="space-y-6">
@@ -132,12 +135,44 @@ const CreateCampaign = () => {
               <IdentityVerification onVerificationComplete={handleVerificationComplete} />
             </div>
           ) : (
-            <ProjectForm
-              onSubmit={onSubmitProject}
-              images={images}
-              onImageUpload={handleImageUpload}
-              onRemoveImage={removeImage}
-            />
+            <>
+              {/* Campaign Type Toggle */}
+              <div className="flex gap-4 mb-6">
+                <button
+                  onClick={() => setCampaignType('project')}
+                  className={`px-4 py-2 rounded-md font-medium border ${
+                    campaignType === 'project' ? 'bg-primary text-white' : 'bg-white text-gray-700'
+                  }`}
+                >
+                  Project Campaign
+                </button>
+                <button
+                  onClick={() => setCampaignType('challenge')}
+                  className={`px-4 py-2 rounded-md font-medium border ${
+                    campaignType === 'challenge' ? 'bg-primary text-white' : 'bg-white text-gray-700'
+                  }`}
+                >
+                  Challenge Campaign
+                </button>
+              </div>
+
+              {/* Conditional Form */}
+              {campaignType === 'project' ? (
+                <ProjectForm
+                  onSubmit={onSubmitProject}
+                  images={images}
+                  onImageUpload={handleImageUpload}
+                  onRemoveImage={removeImage}
+                />
+              ) : (
+                <ChallengeForm
+                  onSubmit={onSubmitProject}
+                  images={images}
+                  onImageUpload={handleImageUpload}
+                  onRemoveImage={removeImage}
+                />
+              )}
+            </>
           )}
         </div>
       </main>

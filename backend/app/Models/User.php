@@ -164,4 +164,17 @@ class User extends Authenticatable implements MustVerifyEmail
             ? $this->avatar 
             : asset('storage/' . $this->avatar);
     }
+
+
+    // app/Models/User.php
+    use HasApiTokens;
+public function verification()
+{
+    return $this->hasOne(Verification::class);
+}
+
+public function isVerified()
+{
+    return $this->verification && $this->verification->status === 'approved';
+}
 }

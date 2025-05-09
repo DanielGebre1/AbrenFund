@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../ui/table";
 import { Button } from "../../ui/button";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import api from "../../../services/api";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -22,49 +24,7 @@ const formSchema = z.object({
 });
 
 const AdminUsers = () => {
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: "Alex Johnson",
-      email: "alex@example.com",
-      role: "creator",
-      joined: "2023-01-15",
-      status: "active"
-    },
-    {
-      id: 2,
-      name: "Sarah Williams",
-      email: "sarah@example.com",
-      role: "creator",
-      joined: "2023-02-23",
-      status: "active"
-    },
-    {
-      id: 3,
-      name: "Michael Brown",
-      email: "michael@example.com",
-      role: "moderator",
-      joined: "2023-01-05",
-      status: "active"
-    },
-    {
-      id: 4,
-      name: "Emily Davis",
-      email: "emily@example.com",
-      role: "creator",
-      joined: "2023-03-10",
-      status: "inactive"
-    },
-    {
-      id: 5,
-      name: "James Wilson",
-      email: "james@example.com",
-      role: "admin",
-      joined: "2022-11-20",
-      status: "active"
-    }
-  ]);
-
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -72,6 +32,7 @@ const AdminUsers = () => {
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -83,55 +44,70 @@ const AdminUsers = () => {
     },
   });
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.get('/api/users', {
+          params: {
+            search: searchTerm,
+            role: roleFilter !== 'all' ? roleFilter : undefined,
+            status: statusFilter !== 'all' ? statusFilter : undefined
+          }
+        });
+        setUsers(response.data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast.error("Failed to fetch users");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [searchTerm, roleFilter, statusFilter]);
+
   const filteredUsers = users.filter(user => {
     return (
       (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (roleFilter === "all" || user.role === roleFilter) &&
-      (statusFilter === "all" || user.status === statusFilter)
-    );
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    ));
   });
 
-  const handleAddUser = (values) => {
-    const newUser = {
-      id: users.length + 1,
-      name: values.name,
-      email: values.email,
-      role: values.role,
-      joined: new Date().toISOString().split('T')[0],
-      status: values.status
-    };
-
-    setUsers([...users, newUser]);
-    setIsAddUserDialogOpen(false);
-    form.reset();
-    toast.success("User added successfully");
+  const handleAddUser = async (values) => {
+    try {
+      const response = await api.post('api/users', values);
+      setUsers(prev => [...prev, response.data]);
+      setIsAddUserDialogOpen(false);
+      form.reset();
+      toast.success("User added successfully");
+    } catch (error) {
+      toast.error("Failed to add user");
+    }
   };
 
-  const handleEditUser = (values) => {
-    const updatedUsers = users.map(user => {
-      if (user.id === selectedUser.id) {
-        return {
-          ...user,
-          name: values.name,
-          email: values.email,
-          role: values.role,
-          status: values.status
-        };
-      }
-      return user;
-    });
-
-    setUsers(updatedUsers);
-    setIsEditUserDialogOpen(false);
-    toast.success("User updated successfully");
+  const handleEditUser = async (values) => {
+    try {
+      const response = await api.put(`api/users/${selectedUser.id}`, values);
+      setUsers(prev => prev.map(user =>
+        user.id === selectedUser.id ? response.data : user
+      ));
+      setIsEditUserDialogOpen(false);
+      toast.success("User updated successfully");
+    } catch (error) {
+      toast.error("Failed to update user");
+    }
   };
 
-  const handleDeleteUser = () => {
-    const updatedUsers = users.filter(user => user.id !== selectedUser.id);
-    setUsers(updatedUsers);
-    setIsDeleteUserDialogOpen(false);
-    toast.success("User deleted successfully");
+  const handleDeleteUser = async () => {
+    try {
+      await api.delete(`api/users/${selectedUser.id}`);
+      setUsers(prev => prev.filter(user => user.id !== selectedUser.id));
+      setIsDeleteUserDialogOpen(false);
+      toast.success("User deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete user");
+    }
   };
 
   const openEditDialog = (user) => {
@@ -214,7 +190,13 @@ const AdminUsers = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.length > 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    Loading users...
+                  </TableCell>
+                </TableRow>
+              ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
@@ -231,7 +213,7 @@ const AdminUsers = () => {
                         {user.role}
                       </Badge>
                     </TableCell>
-                    <TableCell>{user.joined}</TableCell>
+                    <TableCell>{new Date(user.joined).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Badge 
                         className={`px-2 py-1 ${
