@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Eye, ArrowUpDown, CheckCircle, XCircle, Users } from "lucide-react";
 import { Textarea } from '../../ui/textarea';
 import { toast } from "sonner";
@@ -9,76 +9,7 @@ import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Badge } from "../../ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
-
-// Mock data for challenges
-const challenges = [
-  {
-    id: 1,
-    title: "Sustainable Energy Solution",
-    company: "GreenTech Energy",
-    category: "Environment",
-    submissions: 12,
-    reward: "50,000 ETB",
-    deadline: "2023-12-15",
-    status: "active"
-  },
-  {
-    id: 2,
-    title: "Student Accommodation App",
-    company: "Wollo University",
-    category: "Innovation & Tech",
-    submissions: 8,
-    reward: "35,000 ETB",
-    deadline: "2023-11-30",
-    status: "active"
-  },
-  {
-    id: 3,
-    title: "Agricultural Waste Management",
-    company: "AgroEthiopia",
-    category: "Environment",
-    submissions: 5,
-    reward: "40,000 ETB",
-    deadline: "2024-01-10",
-    status: "active"
-  }
-];
-
-// Mock data for submissions
-const submissions = [
-  {
-    id: 1,
-    challengeId: 1,
-    projectTitle: "Solar-Powered Water Purification",
-    creator: "Alex Johnson",
-    submitted: "2023-10-15",
-    status: "pending"
-  },
-  {
-    id: 2,
-    challengeId: 1,
-    projectTitle: "Wind Energy Micro-Generators",
-    creator: "Sarah Williams",
-    submitted: "2023-10-18",
-    status: "approved"
-  },
-  {
-    id: 3,
-    challengeId: 2,
-    projectTitle: "DormFinder App",
-    creator: "Michael Brown",
-    submitted: "2023-10-12",
-    status: "rejected"
-  },
-  {
-    id: 4,
-    challengeId: 2,
-    projectTitle: "Campus Housing Marketplace",
-    creator: "Emily Davis",
-    submitted: "2023-10-20",
-    status: "pending"
-  }
-];
+import api from '../../../services/api';
 
 const CreatorChallenges = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,13 +17,65 @@ const CreatorChallenges = () => {
   const [sortColumn, setSortColumn] = useState("title");
   const [sortDirection, setSortDirection] = useState("asc");
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
   const [viewSubmissionsForChallenge, setViewSubmissionsForChallenge] = useState(null);
+  const [challenges, setChallenges] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Filter and sort challenges
-  const filteredChallenges = challenges.filter(challenge => {
+  // Fetch challenges and submissions
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Fetch challenges with type=challenge
+        const challengesResponse = await api.get('/api/campaigns', {
+          params: { type: 'challenge' }
+        });
+        
+        // Ensure we have an array of challenges
+        let challengesData = [];
+        if (challengesResponse.data && challengesResponse.data.data) {
+          // Handle both array and paginated response
+          challengesData = Array.isArray(challengesResponse.data.data) 
+            ? challengesResponse.data.data 
+            : challengesResponse.data.data.data || [];
+        }
+        
+        setChallenges(challengesData);
+        
+        if (viewSubmissionsForChallenge) {
+          // Fetch proposals for the specific challenge
+          const submissionsResponse = await api.get(`/api/campaigns/${viewSubmissionsForChallenge}/proposals`);
+          
+          // Ensure we have an array of submissions
+          let submissionsData = [];
+          if (submissionsResponse.data && submissionsResponse.data.data) {
+            submissionsData = Array.isArray(submissionsResponse.data.data)
+              ? submissionsResponse.data.data
+              : submissionsResponse.data.data.data || [];
+          }
+          
+          setSubmissions(submissionsData);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error);
+        toast.error(error.response?.data?.message || 'Failed to load data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [viewSubmissionsForChallenge]);
+
+  // Filter and sort challenges - now safely handles challenges array
+  const filteredChallenges = Array.isArray(challenges) ? challenges.filter(challenge => {
     return (
       challenge.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (statusFilter === "all" || challenge.status === statusFilter)
@@ -104,22 +87,37 @@ const CreatorChallenges = () => {
         : b.title.localeCompare(a.title);
     } else if (sortColumn === "submissions") {
       return sortDirection === "asc" 
-        ? a.submissions - b.submissions
-        : b.submissions - a.submissions;
+        ? (a.proposals_count || a.submissions_count || 0) - (b.proposals_count || b.submissions_count || 0)
+        : (b.proposals_count || b.submissions_count || 0) - (a.proposals_count || a.submissions_count || 0);
     }
     return 0;
-  });
+  }) : [];
 
-  // Filter submissions for a specific challenge
-  const filteredSubmissions = submissions.filter(submission => 
-    viewSubmissionsForChallenge ? submission.challengeId === viewSubmissionsForChallenge : true
-  );
+  // Filter submissions for a specific challenge - safely handles submissions array
+  const filteredSubmissions = Array.isArray(submissions) ? submissions.filter(submission => 
+    viewSubmissionsForChallenge ? submission.campaign_id === viewSubmissionsForChallenge : true
+  ) : [];
 
   // Handler for status change
-  const handleStatusChange = (submissionId, newStatus) => {
-    toast.success(`Submission ${submissionId} has been ${newStatus}`);
-    setSubmissionDialogOpen(false);
-    setFeedbackText("");
+  const handleStatusChange = async (submissionId, newStatus) => {
+    try {
+      await api.put(`/api/proposals/${submissionId}/status`, {
+        status: newStatus,
+        feedback: feedbackText
+      });
+      
+      toast.success(`Proposal ${newStatus} successfully`);
+      setSubmissionDialogOpen(false);
+      setFeedbackText("");
+      
+      // Update local state
+      setSubmissions(submissions.map(sub => 
+        sub.id === submissionId ? { ...sub, status: newStatus } : sub
+      ));
+    } catch (error) {
+      console.error('Error updating proposal status:', error);
+      toast.error(error.response?.data?.message || 'Failed to update proposal status');
+    }
   };
 
   // Handle sorting change
@@ -142,6 +140,33 @@ const CreatorChallenges = () => {
     setViewSubmissionsForChallenge(null);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-medium">Error loading challenges</h3>
+          <p className="text-muted-foreground">
+            {error.message || 'Please try again later'}
+          </p>
+          <Button 
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -159,7 +184,7 @@ const CreatorChallenges = () => {
               ← Back to All Challenges
             </Button>
             <h3 className="text-lg font-semibold">
-              {challenges.find(c => c.id === viewSubmissionsForChallenge)?.title} - Submissions
+              {challenges.find(c => c.id === viewSubmissionsForChallenge)?.title || 'Challenge'} - Submissions
             </h3>
           </div>
           
@@ -179,9 +204,9 @@ const CreatorChallenges = () => {
                   {filteredSubmissions.length > 0 ? (
                     filteredSubmissions.map((submission) => (
                       <TableRow key={submission.id}>
-                        <TableCell className="font-medium">{submission.projectTitle}</TableCell>
-                        <TableCell>{submission.creator}</TableCell>
-                        <TableCell>{submission.submitted}</TableCell>
+                        <TableCell className="font-medium">{submission.title}</TableCell>
+                        <TableCell>{submission.user?.name || 'Unknown'}</TableCell>
+                        <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Badge 
                             variant={
@@ -287,9 +312,9 @@ const CreatorChallenges = () => {
                         <TableCell className="font-medium">{challenge.title}</TableCell>
                         <TableCell>{challenge.company}</TableCell>
                         <TableCell>{challenge.category}</TableCell>
-                        <TableCell>{challenge.submissions}</TableCell>
-                        <TableCell>{challenge.reward}</TableCell>
-                        <TableCell>{challenge.deadline}</TableCell>
+                        <TableCell>{challenge.proposals_count || challenge.submissions_count || 0}</TableCell>
+                        <TableCell>{challenge.award}</TableCell>
+                        <TableCell>{new Date(challenge.deadline).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Badge 
                             variant={challenge.status === "active" ? "outline" : "secondary"}
@@ -338,40 +363,40 @@ const CreatorChallenges = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-semibold text-sm">Project Title</h3>
-                  <p>{selectedSubmission.projectTitle}</p>
+                  <p>{selectedSubmission.title}</p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Submitted By</h3>
-                  <p>{selectedSubmission.creator}</p>
+                  <p>{selectedSubmission.user?.name || 'Unknown'}</p>
                 </div>
               </div>
               
               <div>
                 <h3 className="font-semibold text-sm">Submission Date</h3>
-                <p>{selectedSubmission.submitted}</p>
+                <p>{new Date(selectedSubmission.created_at).toLocaleString()}</p>
               </div>
               
               <div>
                 <h3 className="font-semibold text-sm">Project Description</h3>
                 <p className="text-muted-foreground">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla ultricies, 
-                  felis at aliquam dapibus, est elit finibus urna, vitae fermentum orci dolor non lectus.
+                  {selectedSubmission.description || 'No description provided'}
                 </p>
               </div>
               
               <div>
                 <h3 className="font-semibold text-sm">Solution Approach</h3>
                 <p className="text-muted-foreground">
-                  Donec facilisis augue eu ligula varius, ut dignissim magna iaculis. 
-                  Etiam imperdiet tincidunt ultrices. Morbi non sollicitudin odio, quis eleifend libero.
+                  {selectedSubmission.solution || 'No solution details provided'}
                 </p>
               </div>
               
               <div>
                 <h3 className="font-semibold text-sm">Budget & Timeline</h3>
                 <p className="text-muted-foreground">
-                  Anticipated completion within 3 months with a detailed budget breakdown 
-                  for personnel, equipment, and operational costs.
+                  {selectedSubmission.budget_breakdown || 'No budget breakdown provided'}
+                </p>
+                <p className="text-muted-foreground mt-2">
+                  Timeline: {selectedSubmission.timeline || 'Not specified'}
                 </p>
               </div>
               

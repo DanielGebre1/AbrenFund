@@ -2,11 +2,10 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 
 const api = axios.create({
-  baseURL: import.meta.env.REACT_APP_API_BASE_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
-    'Content-Type': 'application/json',
   }
 });
 
@@ -16,6 +15,13 @@ api.interceptors.request.use(async (config) => {
   const token = localStorage.getItem('auth-token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Set Content-Type to multipart/form-data for FormData requests
+  if (config.data instanceof FormData) {
+    config.headers['Content-Type'] = 'multipart/form-data';
+  } else {
+    config.headers['Content-Type'] = 'application/json';
   }
 
   // Only get CSRF cookie for non-GET requests
@@ -68,7 +74,7 @@ api.interceptors.response.use(
           break;
 
         case 500:
-          toast.error('Server error occurred. Please try again later.');
+          toast.error(response.data?.message || 'Server error occurred. Please try again later.');
           break;
 
         default:
@@ -131,13 +137,7 @@ export const VerificationService = {
         throw { isAuthError: true, message: 'Authentication required' };
       }
 
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
-        }
-      };
-      const response = await api.post('/api/verification/submit', formData, config);
+      const response = await api.post('/api/verification/submit', formData);
       toast.success('Verification submitted successfully');
       return response.data;
     } catch (error) {
@@ -254,16 +254,6 @@ export const ModeratorVerificationService = {
 
 // Campaign Service Methods
 export const CampaignService = {
-  async createCampaign(data) {
-    try {
-      const response = await api.post('/api/campaigns', data);
-      toast.success('Campaign submitted successfully');
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
   async getCampaigns(params = {}) {
     try {
       const response = await api.get('/api/campaigns', { params });
@@ -278,6 +268,19 @@ export const CampaignService = {
       const response = await api.get(`/api/campaigns/${id}`);
       return response.data;
     } catch (error) {
+      throw error;
+    }
+  },
+
+  async createCampaign(formData) {
+    try {
+      const response = await api.post('/api/campaigns', formData);
+      toast.success('Campaign submitted successfully');
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 422) {
+        throw error.response.data.errors;
+      }
       throw error;
     }
   },
@@ -300,43 +303,114 @@ export const CampaignService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  async checkVerification() {
+    try {
+      const response = await api.get('/api/verification/status');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
-// User Service Methods
-export const UserService = {
-  async getUsers(params = {}) {
+// Challenge Service Methods
+export const ChallengeService = {
+  async getChallenges(params = {}) {
     try {
-      const response = await api.get('/api/admin/users', { params });
+      // Add type filter to only get challenges
+      const response = await api.get('/api/campaigns', { 
+        params: { ...params, type: 'challenge' } 
+      });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async getUserDetails(id) {
+  async getChallengeDetails(id) {
     try {
-      const response = await api.get(`/api/admin/users/${id}`);
+      const response = await api.get(`/api/campaigns/${id}`);
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async updateUser(id, data) {
+  async getChallengeProposals(challengeId) {
     try {
-      const response = await api.put(`/api/admin/users/${id}`, data);
-      toast.success('User updated successfully');
+      const response = await api.get(`/api/campaigns/${challengeId}/proposals`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
+// Proposal Service Methods
+export const ProposalService = {
+  async getProposals(campaignId, params = {}) {
+    try {
+      const response = await api.get(`/api/campaigns/${campaignId}/proposals`, { params });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  async deleteUser(id) {
+  async getProposalDetails(id) {
     try {
-      const response = await api.delete(`/api/admin/users/${id}`);
-      toast.success('User deleted successfully');
+      const response = await api.get(`/api/proposals/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async createProposal(campaignId, formData) {
+    try {
+      const response = await api.post(`/api/campaigns/${campaignId}/proposals`, formData);
+      toast.success('Proposal submitted successfully');
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 422) {
+        throw error.response.data.errors;
+      }
+      throw error;
+    }
+  },
+
+  async updateProposal(id, data) {
+    try {
+      const response = await api.put(`/api/proposals/${id}`, data);
+      toast.success('Proposal updated successfully');
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 422) {
+        throw error.response.data.errors;
+      }
+      throw error;
+    }
+  },
+
+  async deleteProposal(id) {
+    try {
+      const response = await api.delete(`/api/proposals/${id}`);
+      toast.success('Proposal deleted successfully');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async updateProposalStatus(id, status, feedback = '') {
+    try {
+      const response = await api.put(`/api/proposals/${id}/status`, {
+        status,
+        feedback
+      });
+      toast.success(`Proposal ${status} successfully`);
       return response.data;
     } catch (error) {
       throw error;

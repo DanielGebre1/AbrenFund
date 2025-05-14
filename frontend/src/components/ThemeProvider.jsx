@@ -1,31 +1,32 @@
-
-
-// ThemeProvider.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useEffect } from 'react';
+import { useAuthStore } from '../hooks/useAuthStore';
 
 export const ThemeContext = createContext({
   theme: 'light',
   setTheme: () => {},
 });
 
-// ✅ Add this hook
 export function useTheme() {
   return useContext(ThemeContext);
 }
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme || 
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  });
+  const { theme, setTheme } = useAuthStore();
 
   useEffect(() => {
+    // Initialize theme if not set
+    if (!theme) {
+      const savedTheme = localStorage.getItem('theme');
+      const preferredTheme = savedTheme || 
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      setTheme(preferredTheme);
+    }
+
+    // Apply theme to document
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+  }, [theme, setTheme]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

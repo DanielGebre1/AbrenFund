@@ -48,7 +48,7 @@ const AdminUsers = () => {
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get('/api/users', {
+        const response = await api.get('/api/admin/users', {
           params: {
             search: searchTerm,
             role: roleFilter !== 'all' ? roleFilter : undefined,
@@ -76,7 +76,7 @@ const AdminUsers = () => {
 
   const handleAddUser = async (values) => {
     try {
-      const response = await api.post('api/users', values);
+      const response = await api.post('api/admin/users', values);
       setUsers(prev => [...prev, response.data]);
       setIsAddUserDialogOpen(false);
       form.reset();
@@ -88,7 +88,7 @@ const AdminUsers = () => {
 
   const handleEditUser = async (values) => {
     try {
-      const response = await api.put(`api/users/${selectedUser.id}`, values);
+      const response = await api.put(`api/admin/users/${selectedUser.id}`, values);
       setUsers(prev => prev.map(user =>
         user.id === selectedUser.id ? response.data : user
       ));
@@ -101,7 +101,7 @@ const AdminUsers = () => {
 
   const handleDeleteUser = async () => {
     try {
-      await api.delete(`api/users/${selectedUser.id}`);
+      await api.delete(`api/admin/users/${selectedUser.id}`);
       setUsers(prev => prev.filter(user => user.id !== selectedUser.id));
       setIsDeleteUserDialogOpen(false);
       toast.success("User deleted successfully");

@@ -70,7 +70,7 @@ const challengeFormSchema = z.object({
   contactEmail: z.string().email({
     message: "Please provide a valid contact email.",
   }),
-  thumbnailImage: z.string().optional(),
+  thumbnailImage: z.any().optional(),
 });
 
 const ChallengeForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
@@ -89,7 +89,7 @@ const ChallengeForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
       companyName: "",
       companyDescription: "",
       contactEmail: "",
-      thumbnailImage: "",
+      thumbnailImage: null,
     },
   });
 
@@ -362,6 +362,29 @@ const ChallengeForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
               onImageUpload={onImageUpload}
               onRemoveImage={onRemoveImage}
               labelText="Challenge Images"
+            />
+
+            <FormField
+              control={form.control}
+              name="thumbnailImage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Thumbnail Image</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        field.onChange(e.target.files[0]);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    This will be the main image displayed for your challenge
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
 

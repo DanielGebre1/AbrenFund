@@ -6,10 +6,11 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Eye, EyeOff, HeartHandshake } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import api from "../services/api";
+import { useAuthStore } from "../hooks/useAuthStore";
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const { register } = useAuthStore();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,13 +19,12 @@ const SignUp = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [errors, setErrors] = useState({});
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setErrors({}); // Clear old errors
+    setErrors({});
 
     if (password !== confirmPassword) {
       setErrors({ confirmPassword: ["Passwords do not match."] });
@@ -32,36 +32,31 @@ const SignUp = () => {
       return;
     }
 
+    if (!agreeTerms) {
+      setErrors({ terms: ["You must agree to the Terms of Service and Privacy Policy."] });
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      const response = await api.post('/api/register', {
+      const success = await register({
         name,
         email,
         password,
       });
 
-      console.log("Registration successful:", response.data);
-      localStorage.setItem("pendingVerificationEmail", email);
-      navigate("/email-verification");
+      if (success) {
+        navigate("/email-verification", { replace: true });
+      } else {
+        // Handle case where register returns false but doesn't throw
+        setErrors({ general: ["Registration failed. Please try again."] });
+      }
     } catch (error) {
       console.error("Registration error:", error);
-
-      if (error.response) {
-        console.error("❌ Response status:", error.response.status);
-        console.error("❌ Response data:", error.response.data);
-        console.error("❌ Headers:", error.response.headers);
-
-        // Validation errors (422)
-        if (error.response.status === 422 && error.response.data.errors) {
-          setErrors(error.response.data.errors);
-        } else {
-          alert(`Registration failed: ${error.response.data.message || "Server Error"}`);
-        }
-      } else if (error.request) {
-        console.error("❌ No response received:", error.request);
-        alert("No response from server. Please check your internet or try again later.");
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        setErrors(error.response.data.errors);
       } else {
-        console.error("❌ Error message:", error.message);
-        alert("An unexpected error occurred.");
+        setErrors({ general: [error.response?.data?.message || "Registration failed."] });
       }
     } finally {
       setIsSubmitting(false);
@@ -84,6 +79,9 @@ const SignUp = () => {
 
           <div className="bg-white p-8 rounded-xl shadow-soft">
             <form onSubmit={handleSubmit} className="space-y-5">
+              {errors.general && (
+                <p className="text-xs text-red-600 mb-4">{errors.general[0]}</p>
+              )}
               <div className="space-y-2">
                 <label htmlFor="name" className="block text-sm font-medium">Full Name</label>
                 <Input
@@ -193,6 +191,9 @@ const SignUp = () => {
                   </Link>
                 </label>
               </div>
+              {errors.terms && (
+                <p className="text-xs text-red-600 mt-1">{errors.terms[0]}</p>
+              )}
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? "Creating Account..." : "Create Account"}

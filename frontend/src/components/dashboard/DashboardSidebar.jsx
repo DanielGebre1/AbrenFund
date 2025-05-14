@@ -11,11 +11,14 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "../ui/sidebar";
-import { HeartHandshake, Users, PieChart, FileText, Briefcase, Award, Settings, MessageSquare, BarChart, Trophy } from "lucide-react";
+import { HeartHandshake, Users, PieChart, FileText, Briefcase, Award
+
+, Settings, MessageSquare, BarChart, Trophy } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import { useIsMobile } from "../../hooks/use-mobile";
-import { SheetTitle } from "../ui/sheet";
+import { SheetTitle, SheetDescription } from "../ui/sheet";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export const DashboardSidebar = ({ type }) => {
   const location = useLocation();
@@ -132,8 +135,19 @@ export const DashboardSidebar = ({ type }) => {
         <div className="flex items-center gap-2 px-2 py-3">
           <HeartHandshake className="h-5 w-5 text-primary" />
           <span className="text-lg font-semibold text-primary capitalize">{type} Dashboard</span>
-          {/* This hidden SheetTitle fixes the accessibility issue */}
-          {isMobile && <SheetTitle className="sr-only">{type} Dashboard</SheetTitle>}
+          {/* Add SheetTitle and SheetDescription for mobile accessibility */}
+          {isMobile && (
+            <>
+              <VisuallyHidden asChild>
+                <SheetTitle>{type} Dashboard</SheetTitle>
+              </VisuallyHidden>
+              <VisuallyHidden asChild>
+                <SheetDescription>
+                  Navigate through {type} dashboard features and settings.
+                </SheetDescription>
+              </VisuallyHidden>
+            </>
+          )}
         </div>
       </SidebarHeader>
       <SidebarContent>

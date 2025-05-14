@@ -15,19 +15,18 @@ class VerificationPolicy
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user)
-    {
-        // Only admins and moderators can view all verifications
-        return $user->hasRole(['admin', 'moderator']);
-    }
+{
+    return $user->role === 'admin' || $user->role === 'moderator';
+}
+
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Verification $verification)
-    {
-        // Admins/moderators can view any verification
-        return $user->hasRole(['admin', 'moderator']);
-    }
+  public function view(User $user, Verification $verification)
+{
+    return $user->role === 'admin' || $user->role === 'moderator';
+}
 
     /**
      * Determine whether the user can create models.
@@ -50,21 +49,18 @@ class VerificationPolicy
     /**
      * Determine whether the user can approve the verification.
      */
-    public function approve(User $user, Verification $verification)
-    {
-        // Only admins/moderators can approve pending verifications
-        return $user->hasRole(['admin', 'moderator']) && $verification->status === 'pending';
-    }
+    public function approve(User $user)
+{
+    return $user->role === 'admin' || $user->role === 'moderator';
+}
 
     /**
      * Determine whether the user can reject the verification.
      */
-    public function reject(User $user, Verification $verification): bool
-    {
-        // Only admins/moderators can reject pending verifications
-        return $user->hasRole(['admin', 'moderator']) && $verification->status === 'pending';
-    }
-
+    public function reject(User $user)
+{
+    return $user->role === 'admin' || $user->role === 'moderator';
+}
     /**
      * Determine whether the user can delete the model.
      */
@@ -105,4 +101,6 @@ class VerificationPolicy
         // Users can only download their own verification files
         return $user->id === $verification->user_id;
     }
+
+    
 }

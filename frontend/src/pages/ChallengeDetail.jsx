@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../hooks/useAuthStore'; 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Button } from '../components/ui/button';
@@ -7,7 +8,6 @@ import { Card, CardContent } from '../components/ui/card';
 import { Calendar, Users, Award } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { getChallengeById } from '../utils/challengeUtils';
 import { checkAuthAndRedirect } from '../utils/authRedirect';
 import { toast } from 'sonner';
 import MediaUpload from '../components/campaign/MediaUpload';
@@ -24,17 +24,18 @@ import {
 } from '../components/ui/form';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
+import api from '../services/api';
 
-// Form schema
+// Form schema for proposal submission
 const formSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters").max(100, "Title must be less than 100 characters"),
-  description: z.string().min(20, "Description must be at least 20 characters").max(2000, "Description must be less than 2000 characters"),
-  problem: z.string().min(20, "Problem statement must be at least 20 characters").max(1000, "Problem statement must be less than 1000 characters"),
-  solution: z.string().min(20, "Solution must be at least 20 characters").max(1000, "Solution must be less than 1000 characters"),
-  budgetBreakdown: z.string().min(20, "Budget breakdown must be at least 20 characters").max(1000, "Budget breakdown must be less than 1000 characters"),
-  timeline: z.string().min(5, "Timeline must be specified"),
-  impact: z.string().min(20, "Expected impact must be at least 20 characters").max(1000, "Expected impact must be less than 1000 characters"),
-  team: z.string().min(10, "Please provide team information"),
+  title: z.string().min(5, 'Title must be at least 5 characters').max(100, 'Title must be less than 100 characters'),
+  description: z.string().min(20, 'Description must be at least 20 characters').max(2000, 'Description must be less than 2000 characters'),
+  problem_statement: z.string().min(20, 'Problem statement must be at least 20 characters').max(1000, 'Problem statement must be less than 1000 characters'),
+  proposed_solution: z.string().min(20, 'Solution must be at least 20 characters').max(1000, 'Solution must be less than 1000 characters'),
+  budget_breakdown: z.string().min(20, 'Budget breakdown must be at least 20 characters').max(1000, 'Budget breakdown must be less than 1000 characters'),
+  timeline: z.string().min(5, 'Timeline must be specified'),
+  expected_impact: z.string().min(20, 'Expected impact must be at least 20 characters').max(1000, 'Expected impact must be less than 1000 characters'),
+  team_info: z.string().min(10, 'Please provide team information'),
 });
 
 const ChallengeDetail = () => {
@@ -43,60 +44,149 @@ const ChallengeDetail = () => {
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Initialize form with react-hook-form and zod validation
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      problem: "",
-      solution: "",
-      budgetBreakdown: "",
-      timeline: "",
-      impact: "",
-      team: "",
+      title: '',
+      description: '',
+      problem_statement: '',
+      proposed_solution: '',
+      budget_breakdown: '',
+      timeline: '',
+      expected_impact: '',
+      team_info: '',
     },
   });
 
+  // Check if challenge accepts submissions
+  const acceptsSubmissions = challenge && 
+    challenge.status === 'approved' && 
+     challenge.submission_deadline && 
+  new Date(challenge.submission_deadline) >= new Date();
+
+  // Fetch challenge data and check authentication
   useEffect(() => {
-    if (!checkAuthAndRedirect('/login')) {
+    const fetchChallenge = async () => {
+      if (!checkAuthAndRedirect('/login')) {
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await api.get(`/api/campaigns/${id}`);
+        
+        // Ensure the campaign is a challenge
+        if (response.data.data && response.data.data.type !== 'challenge') {
+          toast.error('This is not a challenge');
+          navigate('/explore');
+          return;
+        }
+        
+        setChallenge(response.data.data);
+      } catch (error) {
+        console.error('Error fetching challenge:', error);
+        toast.error('Failed to load challenge details');
+        navigate('/explore');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchChallenge();
+    }
+  }, [id, navigate]);
+
+  // Handle image upload for supporting documents
+  const handleImageUpload = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
+      setFiles([...files, ...selectedFiles]);
+      selectedFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result) {
+            setImages((prev) => [...prev, { url: reader.result.toString(), name: file.name }]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  // Remove an uploaded image
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+    setFiles(files.filter((_, i) => i !== index));
+  };
+
+  // Handle form submission
+  const onSubmit = async (values) => {
+    if (!challenge) return;
+
+    console.log('Submission check:', {
+    status: challenge.status,
+    deadline: challenge.submission_deadline,
+    now: new Date(),
+    deadlineDate: new Date(challenge.submission_deadline),
+    acceptsSubmissions
+  });
+
+    if (!acceptsSubmissions) {
+      toast.error('This challenge is not currently accepting submissions');
       return;
     }
 
-    if (id) {
-      const fetchedChallenge = getChallengeById(id);
-      if (fetchedChallenge) {
-        setChallenge(fetchedChallenge);
-      } else {
-        navigate('/explore?type=challenges');
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      
+      // Append all form values
+      Object.entries(values).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+      
+      // Append files
+      files.forEach((file) => {
+        formData.append('images[]', file);
+      });
+
+      // Submit proposal to the correct endpoint
+      const response = await api.post(`/api/campaigns/${challenge.id}/proposals`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
       }
+    });
+      
+      toast.success('Proposal submitted successfully');
+      navigate('/creator-dashboard/proposals');
+    } catch (error) {
+      console.error('Submission error:', error);
+      console.log('Error response:', error.response?.data);
+      
+      if (error.response?.status === 422) {
+        // Handle validation errors
+        const errors = error.response.data.errors;
+        Object.keys(errors).forEach((field) => {
+          form.setError(field, {
+            type: 'manual',
+            message: errors[field][0],
+          });
+        });
+        toast.error('Please fix the form errors');
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to submit proposal');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    setLoading(false);
-  }, [id, navigate]);
-
-  const handleImageUpload = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (reader.result) {
-          setImages([...images, reader.result.toString()]);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
-  const removeImage = (index) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
-
-  const onSubmit = (values) => {
-    console.log(values, images);
-    toast.success("Proposal submitted successfully");
-    navigate('/creator-dashboard/proposals');
-  };
-
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -109,6 +199,7 @@ const ChallengeDetail = () => {
     );
   }
 
+  // Challenge not found state
   if (!challenge) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -119,9 +210,7 @@ const ChallengeDetail = () => {
               <h2 className="text-2xl font-bold text-center mb-4">Challenge Not Found</h2>
               <p className="text-center mb-6">The challenge you're looking for doesn't exist or has been removed.</p>
               <div className="flex justify-center">
-                <Button onClick={() => navigate('/explore?type=challenges')}>
-                  View All Challenges
-                </Button>
+                <Button onClick={() => navigate('/explore')}>View All Challenges</Button>
               </div>
             </CardContent>
           </Card>
@@ -137,19 +226,35 @@ const ChallengeDetail = () => {
       <main className="flex-grow py-12 bg-slate-50">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8">
+            {/* Challenge Sidebar */}
             <div className="md:col-span-1">
               <Card className="sticky top-20">
                 <CardContent className="p-6">
                   <div className="mb-4 w-16 h-16 rounded-full overflow-hidden mx-auto">
-                    <img 
-                      src={challenge.logo || "https://via.placeholder.com/150"} 
-                      alt={challenge.company} 
+                    <img
+                      src={challenge.thumbnail_url || 'https://via.placeholder.com/150'}
+                      alt={challenge.company}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <h2 className="text-xl font-bold text-center mb-2">{challenge.title}</h2>
                   <p className="text-center text-muted-foreground mb-6">{challenge.company}</p>
-                  
+
+                  {/* Submission Status Badge */}
+                  <div className="mb-6 text-center">
+                    <Badge 
+                      variant={acceptsSubmissions ? 'default' : 'destructive'}
+                      className="mb-2"
+                    >
+                      {acceptsSubmissions ? 'Accepting Submissions' : 'Submissions Closed'}
+                    </Badge>
+                    {!acceptsSubmissions && new Date(challenge.deadline) < new Date() && (
+                      <p className="text-xs text-muted-foreground">
+                        Deadline: {new Date(challenge.deadline).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <Award className="h-5 w-5 text-primary mr-3" />
@@ -158,57 +263,63 @@ const ChallengeDetail = () => {
                         <p className="text-lg font-bold">{challenge.award}</p>
                       </div>
                     </div>
-                    
                     <div className="flex items-center">
                       <Calendar className="h-5 w-5 text-primary mr-3" />
                       <div>
-                        <p className="text-sm font-medium">Deadline</p>
-                        <p>{challenge.deadline}</p>
+                        <p className="text-sm font-medium">Submission Deadline</p>
+                       <p>{challenge.submission_deadline ? new Date(challenge.submission_deadline).toLocaleDateString() : 'Not specified'}</p>
                       </div>
                     </div>
-                    
                     <div className="flex items-center">
                       <Users className="h-5 w-5 text-primary mr-3" />
                       <div>
                         <p className="text-sm font-medium">Submissions</p>
-                        <p>{challenge.submissions} proposals</p>
+                        <p>{challenge.proposals_count || challenge.submissions_count || 0} proposals</p>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mt-6 pt-6 border-t">
                     <h3 className="font-medium mb-2">Tags</h3>
                     <div className="flex flex-wrap gap-2">
-                      {challenge.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline">{tag}</Badge>
+                      {challenge.tags?.split(',').map((tag, index) => (
+                        <Badge key={index} variant="outline">{tag.trim()}</Badge>
                       ))}
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
-            
+
+            {/* Main Content */}
             <div className="md:col-span-2">
               <Tabs defaultValue="details">
                 <TabsList className="w-full mb-6">
                   <TabsTrigger value="details" className="flex-1">Challenge Details</TabsTrigger>
-                  <TabsTrigger value="submit" className="flex-1">Submit Proposal</TabsTrigger>
+                  <TabsTrigger 
+                    value="submit" 
+                    className="flex-1"
+                    disabled={!acceptsSubmissions}
+                  >
+                    Submit Proposal
+                  </TabsTrigger>
                 </TabsList>
-                
+
+                {/* Challenge Details Tab */}
                 <TabsContent value="details">
                   <Card>
                     <CardContent className="p-6">
                       <h3 className="text-xl font-bold mb-4">Challenge Description</h3>
                       <p className="mb-6">{challenge.description}</p>
-                      
+
                       <h3 className="text-xl font-bold mb-4">What We're Looking For</h3>
                       <p className="mb-6">
-                        We are seeking innovative solutions that address the challenge outlined above. 
-                        Your proposal should be well-researched, feasible, and demonstrate a clear understanding
-                        of the problem space. Successful proposals will include a detailed plan for implementation, 
-                        a realistic timeline, and a budget breakdown.
+                        We are seeking innovative solutions that address the challenge outlined above. Your proposal
+                        should be well-researched, feasible, and demonstrate a clear understanding of the problem space.
+                        Successful proposals will include a detailed plan for implementation, a realistic timeline, and a
+                        budget breakdown.
                       </p>
-                      
+
                       <h3 className="text-xl font-bold mb-4">Evaluation Criteria</h3>
                       <ul className="list-disc pl-5 space-y-2 mb-6">
                         <li>Innovation and creativity of the solution</li>
@@ -217,179 +328,214 @@ const ChallengeDetail = () => {
                         <li>Cost-effectiveness and resource efficiency</li>
                         <li>Team qualifications and expertise</li>
                       </ul>
-                      
+
                       <div className="flex justify-center mt-8">
-                        <Button size="lg" onClick={() => document.querySelector('[value="submit"]')?.dispatchEvent(
-                          new MouseEvent('click', { bubbles: true })
-                        )}>
-                          Submit Your Proposal
+                        <Button
+                          size="lg"
+                          onClick={() => {
+                            if (acceptsSubmissions) {
+                              document.querySelector('[value="submit"]')?.dispatchEvent(
+                                new MouseEvent('click', { bubbles: true })
+                              );
+                            } else {
+                              toast.error('This challenge is not currently accepting submissions');
+                            }
+                          }}
+                        >
+                          {acceptsSubmissions ? 'Submit Your Proposal' : 'Submissions Closed'}
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
-                
+
+                {/* Submit Proposal Tab */}
                 <TabsContent value="submit">
                   <Card>
                     <CardContent className="p-6">
-                      <h3 className="text-xl font-bold mb-6">Submit Your Proposal</h3>
-                      
-                      <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                          <FormField
-                            control={form.control}
-                            name="title"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Proposal Title</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter a title for your proposal" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Proposal Summary</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Provide a brief summary of your proposal" 
-                                    className="min-h-[100px]"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                      {acceptsSubmissions ? (
+                        <>
+                          <h3 className="text-xl font-bold mb-6">Submit Your Proposal</h3>
+                          <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                              {/* Proposal Title */}
+                              <FormField
+                                control={form.control}
+                                name="title"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Proposal Title</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Enter a title for your proposal" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                          <FormField
-                            control={form.control}
-                            name="problem"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Problem Statement</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Clearly define the problem you're addressing" 
-                                    className="min-h-[100px]"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                              {/* Proposal Summary */}
+                              <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Proposal Summary</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Provide a brief summary of your proposal"
+                                        className="min-h-[100px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                          <FormField
-                            control={form.control}
-                            name="solution"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Proposed Solution</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Describe your solution in detail" 
-                                    className="min-h-[150px]"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="budgetBreakdown"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Budget Breakdown</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Provide a detailed breakdown of how funds will be used" 
-                                    className="min-h-[150px]"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="timeline"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Project Timeline</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Outline key milestones and project timeline" 
-                                    className="min-h-[100px]"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                              {/* Problem Statement */}
+                              <FormField
+                                control={form.control}
+                                name="problem_statement"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Problem Statement</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Clearly define the problem you're addressing"
+                                        className="min-h-[100px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                          <FormField
-                            control={form.control}
-                            name="impact"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Expected Impact</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Describe the expected outcomes and impact of your project" 
-                                    className="min-h-[100px]"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="team"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Team Information</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Describe your team members and their qualifications" 
-                                    className="min-h-[100px]"
-                                    {...field} 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <MediaUpload
-                            images={images}
-                            onImageUpload={handleImageUpload}
-                            onRemoveImage={removeImage}
-                            labelText="Supporting Documents & Images"
-                          />
-                          
-                          <div className="flex justify-end pt-4">
-                            <Button size="lg" type="submit">
-                              Submit Proposal
-                            </Button>
-                          </div>
-                        </form>
-                      </Form>
+                              {/* Proposed Solution */}
+                              <FormField
+                                control={form.control}
+                                name="proposed_solution"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Proposed Solution</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Describe your solution in detail"
+                                        className="min-h-[150px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              {/* Budget Breakdown */}
+                              <FormField
+                                control={form.control}
+                                name="budget_breakdown"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Budget Breakdown</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Provide a detailed breakdown of how funds will be used"
+                                        className="min-h-[150px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              {/* Project Timeline */}
+                              <FormField
+                                control={form.control}
+                                name="timeline"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Project Timeline</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Outline key milestones and project timeline"
+                                        className="min-h-[100px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              {/* Expected Impact */}
+                              <FormField
+                                control={form.control}
+                                name="expected_impact"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Expected Impact</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Describe the expected outcomes and impact of your project"
+                                        className="min-h-[100px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              {/* Team Information */}
+                              <FormField
+                                control={form.control}
+                                name="team_info"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Team Information</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Describe your team members and their qualifications"
+                                        className="min-h-[100px]"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              {/* Media Upload */}
+                              <MediaUpload
+                                images={images}
+                                onImageUpload={handleImageUpload}
+                                onRemoveImage={removeImage}
+                                labelText="Supporting Documents & Images"
+                              />
+
+                              {/* Submit Button */}
+                              <div className="flex justify-end pt-4">
+                                <Button size="lg" type="submit" disabled={isSubmitting}>
+                                  {isSubmitting ? 'Submitting...' : 'Submit Proposal'}
+                                </Button>
+                              </div>
+                            </form>
+                          </Form>
+                        </>
+                      ) : (
+                        <div className="text-center py-8">
+                          <h3 className="text-xl font-bold mb-4">Submissions Closed</h3>
+                          <p className="mb-6">
+                            {challenge.status !== 'active'
+                              ? 'This challenge is not currently active.'
+                              : 'The submission deadline has passed.'}
+                          </p>
+                          <Button onClick={() => navigate('/explore')}>
+                            Explore Other Challenges
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>

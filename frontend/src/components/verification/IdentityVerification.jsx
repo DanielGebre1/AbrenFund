@@ -24,6 +24,7 @@ const IdentityVerification = ({ onVerificationComplete }) => {
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const { toast } = useToast();
 
+  // Check verification status on component mount
   useEffect(() => {
     const checkVerificationStatus = async () => {
       try {
@@ -31,8 +32,8 @@ const IdentityVerification = ({ onVerificationComplete }) => {
         const status = await VerificationService.getVerificationStatus();
         setVerificationStatus(status);
         
-        // If status is approved, trigger the redirect
         if (status?.status === "approved") {
+          localStorage.setItem('userVerified', 'true');
           if (onVerificationComplete) {
             onVerificationComplete();
           } else {
@@ -48,14 +49,13 @@ const IdentityVerification = ({ onVerificationComplete }) => {
 
     checkVerificationStatus();
     
-    // Set up polling for status updates if pending
-    const intervalId = setInterval(() => {
-      if (verificationStatus?.status === "pending") {
-        checkVerificationStatus();
-      }
-    }, 30000); // Check every 30 seconds
+    // Only poll if status is pending
+    const intervalId = verificationStatus?.status === "pending" ? 
+      setInterval(checkVerificationStatus, 30000) : null;
 
-    return () => clearInterval(intervalId);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [verificationStatus?.status, navigate, onVerificationComplete]);
 
   const handleSingleFileUpload = (e, setFile) => {
@@ -86,8 +86,8 @@ const IdentityVerification = ({ onVerificationComplete }) => {
     
     if (activeTab === "individual") {
       formData.append("document_type", documentType);
-      formData.append("id_front", idFrontFile);
-      formData.append("id_back", idBackFile);
+      if (idFrontFile) formData.append("id_front", idFrontFile);
+      if (idBackFile) formData.append("id_back", idBackFile);
       addressProofFiles.forEach((file) => {
         formData.append("address_proofs[]", file);
       });
@@ -101,11 +101,11 @@ const IdentityVerification = ({ onVerificationComplete }) => {
     }
 
     try {
-      await VerificationService.submitVerification(formData);
+      const response = await VerificationService.submitVerification(formData);
       setVerificationStatus({ status: "pending" });
       toast({
         title: "Verification submitted",
-        description: "Your documents are under review. We'll notify you when the verification is complete.",
+        description: response.message || "Your documents are under review. We'll notify you when the verification is complete.",
       });
     } catch (error) {
       console.error("Verification submission error:", error);
@@ -239,12 +239,19 @@ const IdentityVerification = ({ onVerificationComplete }) => {
           <Alert variant="success">
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Your verification is complete. You will be redirected to create a campaign shortly.
+              Your verification is complete. You can now create campaigns.
             </AlertDescription>
           </Alert>
           <div className="mt-4 flex justify-center">
-            <Button onClick={() => navigate("/create-campaign")}>
-              Go to Create Campaign
+            <Button onClick={() => {
+              localStorage.setItem('userVerified', 'true');
+              if (onVerificationComplete) {
+                onVerificationComplete();
+              } else {
+                navigate("/create-campaign");
+              }
+            }}>
+              Continue to Create Campaign
             </Button>
           </div>
         </CardContent>

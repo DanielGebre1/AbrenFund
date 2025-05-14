@@ -1,4 +1,3 @@
-// stores/authStore.js
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
@@ -24,18 +23,79 @@ export const useAuthStore = create(
         });
       },
 
+      cleanStorage: () => {
+        // Clear all auth-related keys consistently
+        localStorage.removeItem('auth');
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('userData');
+        localStorage.removeItem('userVerified');
+        localStorage.removeItem('pendingVerificationEmail');
+        
+        // Only keep non-auth preferences
+        const theme = localStorage.getItem('theme') || 'light';
+        localStorage.clear();
+        localStorage.setItem('theme', theme); // Preserve theme preference
+        
+        set({
+          isLoggedIn: false,
+          user: null,
+          token: null,
+          role: null,
+          theme: theme,
+          isInitialized: true
+        });
+      },
+
+      clearVerificationState: () => {
+        localStorage.removeItem('pendingVerificationEmail');
+        localStorage.removeItem('userVerified');
+        
+        // Update state if needed
+        if (get().user) {
+          set({
+            user: {
+              ...get().user,
+              is_verified: 1,
+              email_verified_at: new Date().toISOString()
+            }
+          });
+        }
+      },
+
+      checkStorageConsistency: () => {
+        const authToken = localStorage.getItem('auth-token');
+        const userData = localStorage.getItem('userData');
+        const authState = JSON.parse(localStorage.getItem('auth') || '{}').state;
+        
+        // If inconsistencies found, clean up
+        if ((authToken && !userData) || 
+            (userData && !authToken) || 
+            (authState?.isLoggedIn && !authToken)) {
+          console.warn('Storage inconsistency detected, cleaning...');
+          get().cleanStorage();
+          return false;
+        }
+        return true;
+      },
+
       login: async (credentials) => {
         set({ isLoading: true });
         try {
           await api.get('/sanctum/csrf-cookie');
           const { data } = await api.post('/api/login', credentials);
-          const { token: authToken, user: userData } = data;
           
-          // Normalize user data structure
-          const normalizedUser = userData.me || userData;
+          // Clear any pending verification state
+          localStorage.removeItem('pendingVerificationEmail');
+          
+          const { token: authToken, user: userData } = data;
+          const normalizedUser = {
+            ...(userData.me || userData),
+            role: (userData.me || userData).role || 'user' // Default role
+          };
 
           if (!normalizedUser.email_verified_at) {
             toast.warning('Please verify your email before logging in.');
+            localStorage.setItem('pendingVerificationEmail', credentials.email);
             set({ isLoading: false });
             return false;
           }
@@ -47,7 +107,7 @@ export const useAuthStore = create(
             isLoggedIn: true,
             user: normalizedUser,
             token: authToken,
-            role: normalizedUser.role || null,
+            role: normalizedUser.role,
           });
 
           toast.success('Login successful!');
@@ -55,6 +115,9 @@ export const useAuthStore = create(
         } catch (error) {
           console.error('Login error:', error);
           const msg = error.response?.data?.message || 'Login failed';
+          if (msg.includes('verify')) {
+            localStorage.setItem('pendingVerificationEmail', credentials.email);
+          }
           toast.error(msg);
           set({ isLoggedIn: false, user: null, token: null, role: null });
           return false;
@@ -66,21 +129,16 @@ export const useAuthStore = create(
       logout: async () => {
         set({ isLoading: true });
         try {
-          const token = localStorage.getItem('auth-token');
+          const token = get().token || localStorage.getItem('auth-token');
           if (token) {
             await api.post('/api/logout', null, {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
+              headers: { Authorization: `Bearer ${token}` }
             });
           }
         } catch (err) {
           console.warn('Logout error:', err);
         } finally {
-          set({ theme: 'light' });
-          localStorage.removeItem('auth-token');
-          localStorage.removeItem('userData');
-          set({ isLoggedIn: false, user: null, token: null, role: null });
+          get().cleanStorage();
           toast.success('Logged out successfully!');
           set({ isLoading: false });
         }
@@ -91,6 +149,7 @@ export const useAuthStore = create(
         try {
           await api.get('/sanctum/csrf-cookie');
           await api.post('/api/register', userData);
+          localStorage.setItem('pendingVerificationEmail', userData.email);
           toast.success('Registration successful! Please verify your email before logging in.');
           return true;
         } catch (error) {
@@ -109,22 +168,41 @@ export const useAuthStore = create(
         }
       },
 
+      resendVerification: async (email) => {
+        set({ isLoading: true });
+        try {
+          await api.get('/sanctum/csrf-cookie');
+          const { data } = await api.post('/api/email/verification-notification', { email });
+          if (data.message === 'Verification link sent!') {
+            toast.success('Verification email has been sent!');
+            return true;
+          } else {
+            toast.error('Failed to resend verification email');
+            return false;
+          }
+        } catch (error) {
+          console.error('Resend verification error:', error);
+          toast.error(error.response?.data?.message || 'An error occurred while resending the email');
+          return false;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
       checkAuth: async () => {
         set({ isLoading: true });
+        
+        if (!get().checkStorageConsistency()) {
+          set({ isInitialized: true, isLoading: false });
+          return;
+        }
 
         const storedToken = localStorage.getItem('auth-token');
         const storedUserData = localStorage.getItem('userData');
 
         if (!storedToken || !storedUserData) {
-          set({
-            isLoggedIn: false,
-            user: null,
-            token: null,
-            role: null,
-            theme: localStorage.getItem('theme') || 'light',
-            isInitialized: true,
-            isLoading: false,
-          });
+          get().cleanStorage();
+          set({ isInitialized: true, isLoading: false });
           return;
         }
 
@@ -133,9 +211,10 @@ export const useAuthStore = create(
             headers: { Authorization: `Bearer ${storedToken}` },
           });
 
-          // Normalize user data structure
-          const normalizedUser = data.me || data;
-
+          const normalizedUser = {
+            ...(data.user || data.me || data),
+            role: (data.user || data.me || data).role || JSON.parse(storedUserData).role
+          };
           localStorage.setItem('userData', JSON.stringify(normalizedUser));
 
           set({
@@ -145,23 +224,25 @@ export const useAuthStore = create(
             role: normalizedUser.role || null,
             theme: localStorage.getItem('theme') || 'light',
           });
+
+          // Clear verification state if user is verified
+          if (normalizedUser.email_verified_at) {
+            get().clearVerificationState();
+          }
         } catch (error) {
           console.error('Check auth error:', error);
-          localStorage.removeItem('auth-token');
-          localStorage.removeItem('userData');
-          set({
-            isLoggedIn: false,
-            user: null,
-            token: null,
-            role: null,
-            theme: localStorage.getItem('theme') || 'light',
-          });
+          if (error.response?.status === 401) {
+            get().cleanStorage();
+          }
         } finally {
           set({ isInitialized: true, isLoading: false });
         }
       },
 
-      setTheme: (theme) => set({ theme }),
+      setTheme: (theme) => {
+        localStorage.setItem('theme', theme);
+        set({ theme });
+      },
 
       updateProfile: async (updatedData) => {
         set({ isLoading: true });
@@ -174,9 +255,7 @@ export const useAuthStore = create(
             },
           });
 
-          // Normalize user data structure
           const normalizedUser = data.user || data;
-
           localStorage.setItem('userData', JSON.stringify(normalizedUser));
           set({ user: normalizedUser });
 

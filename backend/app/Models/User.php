@@ -177,4 +177,16 @@ public function isVerified()
 {
     return $this->verification && $this->verification->status === 'approved';
 }
+
+public function isAdmin(): bool
+{
+    return $this->role === 'admin'; // or whatever your admin check logic is
+}
+
+// Add this method
+public function isModerator()
+{
+    return $this->role === 'moderator';
+}
+
 }

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import MediaUpload from './MediaUpload';
+import { toast } from 'react-hot-toast';
 
 const projectFormSchema = z.object({
   title: z.string().min(5, {
@@ -36,11 +37,11 @@ const projectFormSchema = z.object({
     (val) => !isNaN(Number(val)) && Number(val) > 0,
     { message: "Funding goal must be a positive number." }
   ),
-  endDate: z.string({
-    required_error: "Please select an end date.",
+  endDate: z.string().refine(val => !isNaN(Date.parse(val)), {
+    message: "Please select a valid end date.",
   }),
   fundingType: z.enum(["all_or_nothing", "keep_what_you_raise"]),
-  thumbnailImage: z.string().optional(),
+  thumbnailImage: z.instanceof(File).optional(),
 });
 
 const ProjectForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
@@ -54,14 +55,44 @@ const ProjectForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
       fundingGoal: "",
       endDate: "",
       fundingType: "all_or_nothing",
-      thumbnailImage: "",
+      thumbnailImage: undefined,
     },
   });
+
+  const handleSubmit = async (values) => {
+     try {
+    const formattedValues = {
+      ...values,
+      fundingGoal: Number(values.fundingGoal),
+      endDate: new Date(values.endDate).toISOString(),
+    };
+
+    await onSubmit(formattedValues);
+  } catch (error) {
+    console.error('Form submission error:', error);
+    
+    // Handle different error structures
+    if (error?.response?.data?.errors) {
+      // Axios-style error with validation messages
+      const errors = error.response.data.errors;
+      Object.values(errors).flat().forEach(msg => toast.error(msg));
+    } else if (error?.data?.errors) {
+      // Alternative error structure
+      const errors = error.data.errors;
+      Object.values(errors).flat().forEach(msg => toast.error(msg));
+    } else if (error?.message) {
+      // Generic error message
+      toast.error(error.message);
+    } else {
+      toast.error('Failed to submit form. Please try again.');
+    }
+  }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-md">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 p-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 p-6">
           
           {/* Basic Information */}
           <div className="space-y-6">
@@ -256,6 +287,29 @@ const ProjectForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
               images={images}
               onImageUpload={onImageUpload}
               onRemoveImage={onRemoveImage}
+            />
+
+            <FormField
+              control={form.control}
+              name="thumbnailImage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Thumbnail Image</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        field.onChange(e.target.files?.[0]);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    This will be the main image displayed for your campaign
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
 

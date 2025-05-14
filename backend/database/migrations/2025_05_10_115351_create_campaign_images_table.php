@@ -12,10 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('campaign_images', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('campaign_id')->constrained()->onDelete('cascade');
-            $table->string('image_path');
-            $table->timestamps();
+           $table->id();
+        $table->foreignId('campaign_id')->constrained()->onDelete('cascade');
+        $table->string('path');
+        $table->timestamps();
+
         });
     }
 
