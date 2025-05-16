@@ -40,13 +40,18 @@ const CreatorChallenges = () => {
         // Ensure we have an array of challenges
         let challengesData = [];
         if (challengesResponse.data && challengesResponse.data.data) {
-          // Handle both array and paginated response
           challengesData = Array.isArray(challengesResponse.data.data) 
             ? challengesResponse.data.data 
             : challengesResponse.data.data.data || [];
         }
         
-        setChallenges(challengesData);
+        // Transform status for display if needed
+        const transformedChallenges = challengesData.map(challenge => ({
+          ...challenge,
+          displayStatus: getDisplayStatus(challenge)
+        }));
+        
+        setChallenges(transformedChallenges);
         
         if (viewSubmissionsForChallenge) {
           // Fetch proposals for the specific challenge
@@ -74,12 +79,22 @@ const CreatorChallenges = () => {
     fetchData();
   }, [viewSubmissionsForChallenge]);
 
-  // Filter and sort challenges - now safely handles challenges array
+  // Helper function to determine display status
+  const getDisplayStatus = (challenge) => {
+    if (challenge.status === 'approved' && challenge.submission_deadline && new Date(challenge.submission_deadline) > new Date()) {
+      return 'active';
+    }
+    if (challenge.status === 'approved' && challenge.submission_deadline && new Date(challenge.submission_deadline) <= new Date()) {
+      return 'completed';
+    }
+    return challenge.status; // returns 'draft', 'pending', or 'rejected'
+  };
+
+  // Filter and sort challenges
   const filteredChallenges = Array.isArray(challenges) ? challenges.filter(challenge => {
-    return (
-      challenge.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (statusFilter === "all" || challenge.status === statusFilter)
-    );
+    const matchesSearch = challenge.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || challenge.displayStatus === statusFilter;
+    return matchesSearch && matchesStatus;
   }).sort((a, b) => {
     if (sortColumn === "title") {
       return sortDirection === "asc" 
@@ -93,7 +108,7 @@ const CreatorChallenges = () => {
     return 0;
   }) : [];
 
-  // Filter submissions for a specific challenge - safely handles submissions array
+  // Filter submissions for a specific challenge
   const filteredSubmissions = Array.isArray(submissions) ? submissions.filter(submission => 
     viewSubmissionsForChallenge ? submission.campaign_id === viewSubmissionsForChallenge : true
   ) : [];
@@ -132,7 +147,12 @@ const CreatorChallenges = () => {
 
   // View submissions for a specific challenge
   const viewSubmissionsFor = (challengeId) => {
-    setViewSubmissionsForChallenge(challengeId);
+    const challenge = challenges.find(c => c.id === challengeId);
+    if (challenge && challenge.displayStatus === 'active') {
+      setViewSubmissionsForChallenge(challengeId);
+    } else {
+      toast.warning('You can only view submissions for active challenges');
+    }
   };
 
   // Go back to challenges list
@@ -267,9 +287,11 @@ const CreatorChallenges = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="pending">Pending Approval</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -310,16 +332,26 @@ const CreatorChallenges = () => {
                     filteredChallenges.map((challenge) => (
                       <TableRow key={challenge.id}>
                         <TableCell className="font-medium">{challenge.title}</TableCell>
-                        <TableCell>{challenge.company}</TableCell>
+                        <TableCell>{challenge.company_name || 'N/A'}</TableCell>
                         <TableCell>{challenge.category}</TableCell>
                         <TableCell>{challenge.proposals_count || challenge.submissions_count || 0}</TableCell>
-                        <TableCell>{challenge.award}</TableCell>
-                        <TableCell>{new Date(challenge.deadline).toLocaleDateString()}</TableCell>
+                        <TableCell>${challenge.reward_amount?.toLocaleString() || '0'}</TableCell>
+                        <TableCell>
+                          {challenge.submission_deadline 
+                            ? new Date(challenge.submission_deadline).toLocaleDateString() 
+                            : 'N/A'}
+                        </TableCell>
                         <TableCell>
                           <Badge 
-                            variant={challenge.status === "active" ? "outline" : "secondary"}
+                            variant={
+                              challenge.displayStatus === "active" ? "default" : 
+                              challenge.displayStatus === "completed" ? "secondary" : 
+                              challenge.displayStatus === "draft" ? "outline" : 
+                              challenge.displayStatus === "pending" ? "outline" : 
+                              "destructive"
+                            }
                           >
-                            {challenge.status}
+                            {challenge.displayStatus}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -327,6 +359,7 @@ const CreatorChallenges = () => {
                             variant="outline" 
                             size="sm"
                             onClick={() => viewSubmissionsFor(challenge.id)}
+                            disabled={challenge.displayStatus !== 'active'}
                           >
                             <Users className="h-4 w-4 mr-1" />
                             View Submissions

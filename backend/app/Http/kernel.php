@@ -59,5 +59,10 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\CheckAdminRole::class,
         'moderator' => \App\Http\Middleware\ModeratorMiddleware::class,
     ];
+
+    protected function schedule(Schedule $schedule)
+{
+    $schedule->command('challenges:check-completed')->daily();
+}
 }
 

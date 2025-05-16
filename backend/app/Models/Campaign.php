@@ -68,4 +68,25 @@ class Campaign extends Model
            now()->lt($this->submission_deadline);
 }
 
+// In your Campaign model (App\Models\Campaign.php)
+
+protected $appends = ['state']; // Add this to make the computed attribute available in JSON
+
+// Add this method to compute the state
+public function getStateAttribute()
+{
+    // If the campaign is not approved, return 'draft' or 'pending' based on your status
+    if ($this->status !== 'approved') {
+        return $this->status === 'draft' ? 'draft' : 'pending';
+    }
+
+    // If submission deadline has passed, return 'completed'
+    if ($this->submission_deadline && now()->gt($this->submission_deadline)) {
+        return 'completed';
+    }
+
+    // Otherwise, it's active
+    return 'active';
+}
+
 }

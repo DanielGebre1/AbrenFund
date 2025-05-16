@@ -36,7 +36,7 @@ return new class extends Migration
         $table->string('contact_email')->nullable();
         
         $table->string('thumbnail_path')->nullable();
-        $table->enum('status', ['draft', 'pending', 'approved', 'rejected'])->default('pending');
+        $table->enum('status', ['draft', 'pending', 'approved', 'rejected', 'active', 'completed'])->default('pending');
         $table->text('rejection_reason')->nullable();
         $table->timestamps();
         });

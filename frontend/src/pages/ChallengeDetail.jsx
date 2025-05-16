@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../hooks/useAuthStore'; 
+import { useAuthStore } from '../hooks/useAuthStore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Button } from '../components/ui/button';
@@ -64,9 +64,9 @@ const ChallengeDetail = () => {
 
   // Check if challenge accepts submissions
   const acceptsSubmissions = challenge && 
-    challenge.status === 'approved' && 
-     challenge.submission_deadline && 
-  new Date(challenge.submission_deadline) >= new Date();
+    (challenge.status === 'active' || challenge.status === 'approved') && 
+    challenge.submission_deadline && 
+    new Date(challenge.submission_deadline) > new Date();
 
   // Fetch challenge data and check authentication
   useEffect(() => {
@@ -105,36 +105,43 @@ const ChallengeDetail = () => {
   const handleImageUpload = (e) => {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length > 0) {
-      setFiles([...files, ...selectedFiles]);
+      const newFiles = [...files];
+      const newImages = [...images];
+      
       selectedFiles.forEach((file) => {
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+          toast.error(`File ${file.name} is too large (max 5MB)`);
+          return;
+        }
+        
+        newFiles.push(file);
         const reader = new FileReader();
         reader.onload = () => {
           if (reader.result) {
-            setImages((prev) => [...prev, { url: reader.result.toString(), name: file.name }]);
+            newImages.push({ url: reader.result.toString(), name: file.name });
+            setImages([...newImages]);
           }
         };
         reader.readAsDataURL(file);
       });
+      
+      setFiles(newFiles);
     }
   };
 
   // Remove an uploaded image
   const removeImage = (index) => {
-    setImages(images.filter((_, i) => i !== index));
-    setFiles(files.filter((_, i) => i !== index));
+    const newImages = [...images];
+    const newFiles = [...files];
+    newImages.splice(index, 1);
+    newFiles.splice(index, 1);
+    setImages(newImages);
+    setFiles(newFiles);
   };
 
   // Handle form submission
   const onSubmit = async (values) => {
     if (!challenge) return;
-
-    console.log('Submission check:', {
-    status: challenge.status,
-    deadline: challenge.submission_deadline,
-    now: new Date(),
-    deadlineDate: new Date(challenge.submission_deadline),
-    acceptsSubmissions
-  });
 
     if (!acceptsSubmissions) {
       toast.error('This challenge is not currently accepting submissions');
@@ -152,21 +159,20 @@ const ChallengeDetail = () => {
       
       // Append files
       files.forEach((file) => {
-        formData.append('images[]', file);
+        formData.append('supporting_docs[]', file);
       });
 
-      // Submit proposal to the correct endpoint
-      const response = await api.post(`/api/campaigns/${challenge.id}/proposals`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+      // Submit proposal
+      await api.post(`/api/campaigns/${challenge.id}/proposals`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       
       toast.success('Proposal submitted successfully');
       navigate('/creator-dashboard/proposals');
     } catch (error) {
       console.error('Submission error:', error);
-      console.log('Error response:', error.response?.data);
       
       if (error.response?.status === 422) {
         // Handle validation errors
@@ -233,12 +239,12 @@ const ChallengeDetail = () => {
                   <div className="mb-4 w-16 h-16 rounded-full overflow-hidden mx-auto">
                     <img
                       src={challenge.thumbnail_url || 'https://via.placeholder.com/150'}
-                      alt={challenge.company}
+                      alt={challenge.company_name || 'Company logo'}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <h2 className="text-xl font-bold text-center mb-2">{challenge.title}</h2>
-                  <p className="text-center text-muted-foreground mb-6">{challenge.company}</p>
+                  <p className="text-center text-muted-foreground mb-6">{challenge.company_name || 'Unknown company'}</p>
 
                   {/* Submission Status Badge */}
                   <div className="mb-6 text-center">
@@ -248,9 +254,9 @@ const ChallengeDetail = () => {
                     >
                       {acceptsSubmissions ? 'Accepting Submissions' : 'Submissions Closed'}
                     </Badge>
-                    {!acceptsSubmissions && new Date(challenge.deadline) < new Date() && (
+                    {challenge.submission_deadline && (
                       <p className="text-xs text-muted-foreground">
-                        Deadline: {new Date(challenge.deadline).toLocaleDateString()}
+                        Deadline: {new Date(challenge.submission_deadline).toLocaleDateString()}
                       </p>
                     )}
                   </div>
@@ -260,33 +266,35 @@ const ChallengeDetail = () => {
                       <Award className="h-5 w-5 text-primary mr-3" />
                       <div>
                         <p className="text-sm font-medium">Award</p>
-                        <p className="text-lg font-bold">{challenge.award}</p>
+                        <p className="text-lg font-bold">${challenge.reward_amount?.toLocaleString() || '0'}</p>
                       </div>
                     </div>
                     <div className="flex items-center">
                       <Calendar className="h-5 w-5 text-primary mr-3" />
                       <div>
                         <p className="text-sm font-medium">Submission Deadline</p>
-                       <p>{challenge.submission_deadline ? new Date(challenge.submission_deadline).toLocaleDateString() : 'Not specified'}</p>
+                        <p>{challenge.submission_deadline ? new Date(challenge.submission_deadline).toLocaleDateString() : 'Not specified'}</p>
                       </div>
                     </div>
                     <div className="flex items-center">
                       <Users className="h-5 w-5 text-primary mr-3" />
                       <div>
                         <p className="text-sm font-medium">Submissions</p>
-                        <p>{challenge.proposals_count || challenge.submissions_count || 0} proposals</p>
+                        <p>{challenge.proposals_count || 0} proposals</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-6 border-t">
-                    <h3 className="font-medium mb-2">Tags</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {challenge.tags?.split(',').map((tag, index) => (
-                        <Badge key={index} variant="outline">{tag.trim()}</Badge>
-                      ))}
+                  {challenge.tags && (
+                    <div className="mt-6 pt-6 border-t">
+                      <h3 className="font-medium mb-2">Tags</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {challenge.tags.split(',').map((tag, index) => (
+                          <Badge key={index} variant="outline">{tag.trim()}</Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -310,15 +318,12 @@ const ChallengeDetail = () => {
                   <Card>
                     <CardContent className="p-6">
                       <h3 className="text-xl font-bold mb-4">Challenge Description</h3>
-                      <p className="mb-6">{challenge.description}</p>
+                      <div className="mb-6 whitespace-pre-line">{challenge.full_description || challenge.short_description || 'No description provided'}</div>
 
                       <h3 className="text-xl font-bold mb-4">What We're Looking For</h3>
-                      <p className="mb-6">
-                        We are seeking innovative solutions that address the challenge outlined above. Your proposal
-                        should be well-researched, feasible, and demonstrate a clear understanding of the problem space.
-                        Successful proposals will include a detailed plan for implementation, a realistic timeline, and a
-                        budget breakdown.
-                      </p>
+                      <div className="mb-6 whitespace-pre-line">
+                        {challenge.project_scope || 'We are seeking innovative solutions that address the challenge outlined above. Your proposal should be well-researched, feasible, and demonstrate a clear understanding of the problem space.'}
+                      </div>
 
                       <h3 className="text-xl font-bold mb-4">Evaluation Criteria</h3>
                       <ul className="list-disc pl-5 space-y-2 mb-6">
@@ -333,14 +338,12 @@ const ChallengeDetail = () => {
                         <Button
                           size="lg"
                           onClick={() => {
-                            if (acceptsSubmissions) {
-                              document.querySelector('[value="submit"]')?.dispatchEvent(
-                                new MouseEvent('click', { bubbles: true })
-                              );
-                            } else {
-                              toast.error('This challenge is not currently accepting submissions');
+                            const submitTab = document.querySelector('[value="submit"]');
+                            if (submitTab) {
+                              submitTab.click();
                             }
                           }}
+                          disabled={!acceptsSubmissions}
                         >
                           {acceptsSubmissions ? 'Submit Your Proposal' : 'Submissions Closed'}
                         </Button>
@@ -512,6 +515,7 @@ const ChallengeDetail = () => {
                                 onImageUpload={handleImageUpload}
                                 onRemoveImage={removeImage}
                                 labelText="Supporting Documents & Images"
+                                maxFiles={5}
                               />
 
                               {/* Submit Button */}
@@ -527,9 +531,9 @@ const ChallengeDetail = () => {
                         <div className="text-center py-8">
                           <h3 className="text-xl font-bold mb-4">Submissions Closed</h3>
                           <p className="mb-6">
-                            {challenge.status !== 'active'
-                              ? 'This challenge is not currently active.'
-                              : 'The submission deadline has passed.'}
+                            {!challenge.submission_deadline || new Date(challenge.submission_deadline) <= new Date()
+                              ? `The submission deadline has passed (${challenge.submission_deadline ? new Date(challenge.submission_deadline).toLocaleDateString() : 'No deadline specified'})`
+                              : 'This challenge is not currently accepting submissions'}
                           </p>
                           <Button onClick={() => navigate('/explore')}>
                             Explore Other Challenges
