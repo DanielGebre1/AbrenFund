@@ -23,7 +23,16 @@ class ProposalController extends Controller
     {
         try {
             $query = Proposal::with(['user:id,name', 'campaign:id,title', 'media'])
+                ->whereNull('deleted_at') // Explicitly exclude soft-deleted records
                 ->latest();
+
+            // Log initial query count for debugging
+            Log::info('Proposal index: Initial query', [
+                'count' => $query->count(),
+                'user_id' => Auth::id(),
+                'campaign_id' => $campaignId,
+                'request_params' => $request->all()
+            ]);
 
             // Apply filters
             if ($request->has('status')) {
@@ -43,24 +52,56 @@ class ProposalController extends Controller
                 $query->where('campaign_id', $request->campaign_id);
             }
 
+            // Handle user_id filter - support 'current' keyword for current user
             if ($request->has('user_id')) {
-                $query->where('user_id', $request->user_id);
+                if ($request->user_id === 'current') {
+                    $query->where('user_id', Auth::id());
+                } else {
+                    $query->where('user_id', $request->user_id);
+                }
             }
 
+            // Apply search filter
             if ($request->has('search')) {
                 $query->where(function($q) use ($request) {
                     $q->where('title', 'like', '%'.$request->search.'%')
-                      ->orWhere('description', 'like', '%'.$request->search.'%');
+                      ->orWhere('description', 'like', '%'.$request->search.'%')
+                      ->orWhereHas('campaign', function($q) use ($request) {
+                          $q->where('title', 'like', '%'.$request->search.'%');
+                      });
                 });
             }
 
-            $proposals = $query->paginate($request->input('per_page', 10));
-
-            // Append full media URLs
-            $proposals->getCollection()->transform(function ($proposal) {
-                $proposal->media->each(function ($media) {
-                    $media->url = Storage::url($media->path);
+            // Add permission-based filtering
+            $user = Auth::user();
+            if (!$user->isAdmin() && !$user->isModerator()) {
+                // Non-admin/moderator users can only see their own proposals or public ones
+                $query->where(function ($q) use ($user) {
+                    $q->where('user_id', $user->id)
+                      ->orWhereHas('campaign', function ($q) use ($user) {
+                          $q->where('user_id', $user->id); // Campaign owner
+                      });
                 });
+            }
+
+            // Log final query count
+            Log::info('Proposal index: After filters', [
+                'count' => $query->count(),
+                'filters' => [
+                    'status' => $request->status,
+                    'campaign_id' => $campaignId ?? $request->campaign_id,
+                    'user_id' => $request->user_id,
+                    'search' => $request->search
+                ]
+            ]);
+
+            $perPage = $request->input('per_page', 10);
+            $proposals = $query->paginate($perPage);
+
+            // Append full media URLs and normalize status
+            $proposals->getCollection()->transform(function ($proposal) {
+                $this->appendMediaUrls($proposal);
+                $proposal->status = $this->normalizeStatus($proposal->status);
                 return $proposal;
             });
 
@@ -70,7 +111,11 @@ class ProposalController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve proposals: ' . $e->getMessage());
+            Log::error('Failed to retrieve proposals: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'campaign_id' => $campaignId,
+                'error' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'message' => 'Failed to retrieve proposals',
                 'error' => 'Server error occurred'
@@ -104,29 +149,29 @@ class ProposalController extends Controller
                         'message' => 'This campaign is not a challenge'
                     ], 400);
                 }
-                // Use the model method for consistent checks
-            if (!$campaign->acceptsSubmissions()) {
-                return response()->json([
-                    'message' => 'This challenge is not currently accepting submissions'
-                ], 400);
-            }
+
+                if (!$campaign->acceptsSubmissions()) {
+                    return response()->json([
+                        'message' => 'This challenge is not currently accepting submissions'
+                    ], 400);
+                }
 
                 $data['campaign_id'] = $finalCampaignId;
 
                 // Create the proposal
                 $proposal = Proposal::create([
-                'campaign_id' => $campaignId,
-                'user_id' => $user->id,
-                'title' => $request->title,
-                'description' => $request->description,
-                'problem_statement' => $request->problem_statement,
-                'proposed_solution' => $request->proposed_solution,
-                'budget_breakdown' => $request->budget_breakdown,
-                'timeline' => $request->timeline,
-                'expected_impact' => $request->expected_impact,
-                'team_info' => $request->team_info,
-                'status' => 'pending'
-            ]);
+                    'campaign_id' => $finalCampaignId,
+                    'user_id' => $user->id,
+                    'title' => $request->title,
+                    'description' => $request->description,
+                    'problem_statement' => $request->problem_statement,
+                    'proposed_solution' => $request->proposed_solution,
+                    'budget_breakdown' => $request->budget_breakdown,
+                    'timeline' => $request->timeline,
+                    'expected_impact' => $request->expected_impact,
+                    'team_info' => $request->team_info,
+                    'status' => 'pending'
+                ]);
 
                 // Handle images upload
                 if ($request->hasFile('images')) {
@@ -156,16 +201,19 @@ class ProposalController extends Controller
                 $proposal->load('media');
                 $this->appendMediaUrls($proposal);
 
+                // Normalize status for frontend
+                $proposal->status = $this->normalizeStatus($proposal->status);
+
                 return response()->json([
                     'message' => 'Proposal submitted successfully',
                     'data' => $proposal
                 ], 201);
             });
-
         } catch (\Exception $e) {
             Log::error('Proposal creation failed: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
-                'error' => $e
+                'campaign_id' => $campaignId,
+                'error' => $e->getTraceAsString()
             ]);
             return response()->json([
                 'message' => 'Failed to create proposal',
@@ -181,19 +229,32 @@ class ProposalController extends Controller
     {
         try {
             $proposal = Proposal::with(['user:id,name', 'campaign:id,title', 'media'])
+                ->whereNull('deleted_at')
                 ->findOrFail($id);
+
+            // Check if user has permission to view
+            $user = Auth::user();
+            if (!$user->isAdmin() && !$user->isModerator() && $user->id !== $proposal->user_id && $user->id !== $proposal->campaign->user_id) {
+                return response()->json([
+                    'message' => 'Unauthorized to view this proposal'
+                ], 403);
+            }
 
             // Append media URLs
             $this->appendMediaUrls($proposal);
+
+            // Normalize status for frontend
+            $proposal->status = $this->normalizeStatus($proposal->status);
 
             return response()->json([
                 'data' => $proposal,
                 'message' => 'Proposal retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Proposal not found: ' . $e->getMessage(), [
-                'proposal_id' => $id
+                'proposal_id' => $id,
+                'user_id' => Auth::id(),
+                'error' => $e->getTraceAsString()
             ]);
             return response()->json([
                 'message' => 'Proposal not found',
@@ -209,7 +270,7 @@ class ProposalController extends Controller
     {
         try {
             return DB::transaction(function () use ($request, $id) {
-                $proposal = Proposal::findOrFail($id);
+                $proposal = Proposal::whereNull('deleted_at')->findOrFail($id);
 
                 // Check if user can update this proposal
                 if (Auth::id() !== $proposal->user_id && !Auth::user()->isAdmin()) {
@@ -251,17 +312,19 @@ class ProposalController extends Controller
                 $proposal->load('media');
                 $this->appendMediaUrls($proposal);
 
+                // Normalize status for frontend
+                $proposal->status = $this->normalizeStatus($proposal->status);
+
                 return response()->json([
                     'message' => 'Proposal updated successfully',
                     'data' => $proposal
                 ]);
             });
-
         } catch (\Exception $e) {
             Log::error('Proposal update failed: ' . $e->getMessage(), [
                 'proposal_id' => $id,
                 'user_id' => Auth::id(),
-                'error' => $e
+                'error' => $e->getTraceAsString()
             ]);
             return response()->json([
                 'message' => 'Failed to update proposal',
@@ -277,7 +340,7 @@ class ProposalController extends Controller
     {
         try {
             return DB::transaction(function () use ($id) {
-                $proposal = Proposal::findOrFail($id);
+                $proposal = Proposal::whereNull('deleted_at')->findOrFail($id);
 
                 // Check if user can delete this proposal
                 if (Auth::id() !== $proposal->user_id && !Auth::user()->isAdmin()) {
@@ -289,7 +352,7 @@ class ProposalController extends Controller
                 // Delete associated media
                 $mediaPaths = $proposal->media->pluck('path')->toArray();
                 ProposalMedia::where('proposal_id', $proposal->id)->delete();
-                
+
                 // Delete the proposal
                 $proposal->delete();
 
@@ -300,12 +363,11 @@ class ProposalController extends Controller
                     'message' => 'Proposal deleted successfully'
                 ]);
             });
-
         } catch (\Exception $e) {
             Log::error('Proposal deletion failed: ' . $e->getMessage(), [
                 'proposal_id' => $id,
                 'user_id' => Auth::id(),
-                'error' => $e
+                'error' => $e->getTraceAsString()
             ]);
             return response()->json([
                 'message' => 'Failed to delete proposal',
@@ -320,7 +382,7 @@ class ProposalController extends Controller
     public function updateStatus(Request $request, $id)
     {
         try {
-            $proposal = Proposal::findOrFail($id);
+            $proposal = Proposal::whereNull('deleted_at')->findOrFail($id);
             $user = Auth::user();
 
             // Verify user has permission to update status
@@ -331,7 +393,7 @@ class ProposalController extends Controller
             }
 
             $request->validate([
-                'status' => 'required|in:approved,rejected,pending',
+                'status' => 'required|in:pending,under_review,approved,funded,rejected',
                 'feedback' => 'nullable|string|max:1000'
             ]);
 
@@ -340,15 +402,18 @@ class ProposalController extends Controller
                 'feedback' => $request->feedback
             ]);
 
+            // Normalize status for frontend
+            $proposal->status = $this->normalizeStatus($proposal->status);
+
             return response()->json([
                 'message' => 'Proposal status updated successfully',
                 'data' => $proposal
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to update proposal status: ' . $e->getMessage(), [
                 'proposal_id' => $id,
-                'error' => $e
+                'user_id' => Auth::id(),
+                'error' => $e->getTraceAsString()
             ]);
             return response()->json([
                 'message' => 'Failed to update proposal status',
@@ -377,5 +442,21 @@ class ProposalController extends Controller
         });
 
         return $proposal;
+    }
+
+    /**
+     * Normalize status values for consistent frontend display
+     */
+    private function normalizeStatus($status)
+    {
+        $statusMap = [
+            'pending' => 'Pending',
+            'under_review' => 'Under Review',
+            'approved' => 'Accepted',
+            'funded' => 'Funded',
+            'rejected' => 'Rejected'
+        ];
+
+        return $statusMap[strtolower($status)] ?? ucfirst($status);
     }
 }

@@ -11,6 +11,29 @@ import { Badge } from "../../ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../ui/dialog";
 import api from '../../../services/api';
 
+const statusBadgeClasses = {
+  Pending: "bg-amber-100 text-amber-800",
+  'Under Review': "bg-blue-100 text-blue-800",
+  Accepted: "bg-green-100 text-green-800",
+  Funded: "bg-purple-100 text-purple-800",
+  Rejected: "bg-red-100 text-red-800",
+  draft: "bg-gray-100 text-gray-800",
+  pending: "bg-amber-100 text-amber-800",
+  active: "bg-green-100 text-green-800",
+  completed: "bg-blue-100 text-blue-800"
+};
+
+const statusDisplayNames = {
+  pending: "Pending",
+  under_review: "Under Review",
+  approved: "Accepted",
+  funded: "Funded",
+  rejected: "Rejected",
+  draft: "Draft",
+  active: "Active",
+  completed: "Completed"
+};
+
 const CreatorChallenges = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -23,6 +46,7 @@ const CreatorChallenges = () => {
   const [challenges, setChallenges] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState(null);
 
   // Fetch challenges and submissions
@@ -32,9 +56,12 @@ const CreatorChallenges = () => {
         setIsLoading(true);
         setError(null);
         
-        // Fetch challenges with type=challenge
+        // Fetch only challenges created by the current user
         const challengesResponse = await api.get('/api/campaigns', {
-          params: { type: 'challenge' }
+          params: { 
+            type: 'challenge',
+            user_id: 'current' // Filter by current user
+          }
         });
         
         // Ensure we have an array of challenges
@@ -45,7 +72,7 @@ const CreatorChallenges = () => {
             : challengesResponse.data.data.data || [];
         }
         
-        // Transform status for display if needed
+        // Transform status for display
         const transformedChallenges = challengesData.map(challenge => ({
           ...challenge,
           displayStatus: getDisplayStatus(challenge)
@@ -92,14 +119,14 @@ const CreatorChallenges = () => {
 
   // Filter and sort challenges
   const filteredChallenges = Array.isArray(challenges) ? challenges.filter(challenge => {
-    const matchesSearch = challenge.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = challenge.title?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
     const matchesStatus = statusFilter === "all" || challenge.displayStatus === statusFilter;
     return matchesSearch && matchesStatus;
   }).sort((a, b) => {
     if (sortColumn === "title") {
       return sortDirection === "asc" 
-        ? a.title.localeCompare(b.title)
-        : b.title.localeCompare(a.title);
+        ? (a.title || '').localeCompare(b.title || '')
+        : (b.title || '').localeCompare(a.title || '');
     } else if (sortColumn === "submissions") {
       return sortDirection === "asc" 
         ? (a.proposals_count || a.submissions_count || 0) - (b.proposals_count || b.submissions_count || 0)
@@ -116,22 +143,25 @@ const CreatorChallenges = () => {
   // Handler for status change
   const handleStatusChange = async (submissionId, newStatus) => {
     try {
+      setIsUpdating(true);
       await api.put(`/api/proposals/${submissionId}/status`, {
         status: newStatus,
         feedback: feedbackText
       });
       
-      toast.success(`Proposal ${newStatus} successfully`);
+      toast.success(`Proposal ${statusDisplayNames[newStatus] || newStatus} successfully`);
       setSubmissionDialogOpen(false);
       setFeedbackText("");
       
       // Update local state
       setSubmissions(submissions.map(sub => 
-        sub.id === submissionId ? { ...sub, status: newStatus } : sub
+        sub.id === submissionId ? { ...sub, status: statusDisplayNames[newStatus] || newStatus } : sub
       ));
     } catch (error) {
       console.error('Error updating proposal status:', error);
       toast.error(error.response?.data?.message || 'Failed to update proposal status');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -158,6 +188,7 @@ const CreatorChallenges = () => {
   // Go back to challenges list
   const backToChallenges = () => {
     setViewSubmissionsForChallenge(null);
+    setSubmissions([]);
   };
 
   if (isLoading) {
@@ -174,7 +205,7 @@ const CreatorChallenges = () => {
         <div className="text-center">
           <h3 className="text-lg font-medium">Error loading challenges</h3>
           <p className="text-muted-foreground">
-            {error.message || 'Please try again later'}
+            {error.response?.data?.message || error.message || 'Please try again later'}
           </p>
           <Button 
             className="mt-4"
@@ -192,7 +223,7 @@ const CreatorChallenges = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">My Challenges</h2>
-          <p className="text-muted-foreground">Manage your company challenges and review submissions</p>
+          <p className="text-muted-foreground">Manage your challenges and review submissions</p>
         </div>
         <Button onClick={() => window.location.href = '/create-campaign'}>Create New Challenge</Button>
       </div>
@@ -201,7 +232,7 @@ const CreatorChallenges = () => {
         <>
           <div className="flex items-center justify-between">
             <Button variant="ghost" onClick={backToChallenges}>
-              ← Back to All Challenges
+              ← Back to My Challenges
             </Button>
             <h3 className="text-lg font-semibold">
               {challenges.find(c => c.id === viewSubmissionsForChallenge)?.title || 'Challenge'} - Submissions
@@ -224,18 +255,14 @@ const CreatorChallenges = () => {
                   {filteredSubmissions.length > 0 ? (
                     filteredSubmissions.map((submission) => (
                       <TableRow key={submission.id}>
-                        <TableCell className="font-medium">{submission.title}</TableCell>
+                        <TableCell className="font-medium">{submission.title || 'Untitled Proposal'}</TableCell>
                         <TableCell>{submission.user?.name || 'Unknown'}</TableCell>
-                        <TableCell>{new Date(submission.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>{submission.created_at ? new Date(submission.created_at).toLocaleDateString() : 'N/A'}</TableCell>
                         <TableCell>
                           <Badge 
-                            variant={
-                              submission.status === "approved" ? "default" : 
-                              submission.status === "rejected" ? "destructive" : 
-                              "outline"
-                            }
+                            className={statusBadgeClasses[submission.status] || 'bg-gray-100 text-gray-800'}
                           >
-                            {submission.status}
+                            {submission.status || 'Unknown'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -245,6 +272,7 @@ const CreatorChallenges = () => {
                               size="sm"
                               onClick={() => {
                                 setSelectedSubmission(submission);
+                                setFeedbackText(submission.feedback || '');
                                 setSubmissionDialogOpen(true);
                               }}
                             >
@@ -279,8 +307,8 @@ const CreatorChallenges = () => {
               />
             </div>
             <Select 
-              defaultValue="all" 
-              onValueChange={(value) => setStatusFilter(value)}
+              value={statusFilter}
+              onValueChange={setStatusFilter}
             >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
@@ -331,11 +359,11 @@ const CreatorChallenges = () => {
                   {filteredChallenges.length > 0 ? (
                     filteredChallenges.map((challenge) => (
                       <TableRow key={challenge.id}>
-                        <TableCell className="font-medium">{challenge.title}</TableCell>
+                        <TableCell className="font-medium">{challenge.title || 'Untitled Challenge'}</TableCell>
                         <TableCell>{challenge.company_name || 'N/A'}</TableCell>
-                        <TableCell>{challenge.category}</TableCell>
+                        <TableCell>{challenge.category || 'N/A'}</TableCell>
                         <TableCell>{challenge.proposals_count || challenge.submissions_count || 0}</TableCell>
-                        <TableCell>${challenge.reward_amount?.toLocaleString() || '0'}</TableCell>
+                        <TableCell>{challenge.reward_amount ? `$${Number(challenge.reward_amount).toLocaleString()}` : 'N/A'}</TableCell>
                         <TableCell>
                           {challenge.submission_deadline 
                             ? new Date(challenge.submission_deadline).toLocaleDateString() 
@@ -343,13 +371,7 @@ const CreatorChallenges = () => {
                         </TableCell>
                         <TableCell>
                           <Badge 
-                            variant={
-                              challenge.displayStatus === "active" ? "default" : 
-                              challenge.displayStatus === "completed" ? "secondary" : 
-                              challenge.displayStatus === "draft" ? "outline" : 
-                              challenge.displayStatus === "pending" ? "outline" : 
-                              "destructive"
-                            }
+                            className={statusBadgeClasses[challenge.displayStatus] || 'bg-gray-100 text-gray-800'}
                           >
                             {challenge.displayStatus}
                           </Badge>
@@ -383,55 +405,119 @@ const CreatorChallenges = () => {
 
       {/* Submission Details Dialog */}
       <Dialog open={submissionDialogOpen} onOpenChange={setSubmissionDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Submission Details</DialogTitle>
+        <DialogContent className="max-w-3xl flex flex-col max-h-[80vh]">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>{selectedSubmission?.title || 'Submission Details'}</DialogTitle>
             <DialogDescription>
-              Review this project submission for your challenge
+              Review this project submission for {selectedSubmission?.campaign?.title || 'challenge'}
             </DialogDescription>
           </DialogHeader>
           
           {selectedSubmission && (
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-semibold text-sm">Project Title</h3>
-                  <p>{selectedSubmission.title}</p>
+                  <p>{selectedSubmission.title || 'Untitled Proposal'}</p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Submitted By</h3>
                   <p>{selectedSubmission.user?.name || 'Unknown'}</p>
                 </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Submission Date</h3>
+                  <p>{selectedSubmission.created_at ? new Date(selectedSubmission.created_at).toLocaleString() : 'N/A'}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Status</h3>
+                  <Badge className={statusBadgeClasses[selectedSubmission.status] || 'bg-gray-100 text-gray-800'}>
+                    {selectedSubmission.status || 'Unknown'}
+                  </Badge>
+                </div>
               </div>
               
               <div>
-                <h3 className="font-semibold text-sm">Submission Date</h3>
-                <p>{new Date(selectedSubmission.created_at).toLocaleString()}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-sm">Project Description</h3>
+                <h3 className="font-semibold text-sm">Description</h3>
                 <p className="text-muted-foreground">
                   {selectedSubmission.description || 'No description provided'}
                 </p>
               </div>
               
               <div>
-                <h3 className="font-semibold text-sm">Solution Approach</h3>
+                <h3 className="font-semibold text-sm">Problem Statement</h3>
                 <p className="text-muted-foreground">
-                  {selectedSubmission.solution || 'No solution details provided'}
+                  {selectedSubmission.problem_statement || 'No problem statement provided'}
                 </p>
               </div>
               
               <div>
-                <h3 className="font-semibold text-sm">Budget & Timeline</h3>
+                <h3 className="font-semibold text-sm">Proposed Solution</h3>
                 <p className="text-muted-foreground">
-                  {selectedSubmission.budget_breakdown || 'No budget breakdown provided'}
-                </p>
-                <p className="text-muted-foreground mt-2">
-                  Timeline: {selectedSubmission.timeline || 'Not specified'}
+                  {selectedSubmission.proposed_solution || 'No solution details provided'}
                 </p>
               </div>
+              
+              <div>
+                <h3 className="font-semibold text-sm">Budget Breakdown</h3>
+                <p className="text-muted-foreground whitespace-pre-line">
+                  {selectedSubmission.budget_breakdown || 'No budget breakdown provided'}
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-sm">Timeline</h3>
+                <p className="text-muted-foreground whitespace-pre-line">
+                  {selectedSubmission.timeline || 'No timeline provided'}
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-sm">Team Information</h3>
+                <p className="text-muted-foreground">
+                  {selectedSubmission.team_info || 'No team information provided'}
+                </p>
+              </div>
+              
+              {selectedSubmission.feedback && (
+                <div>
+                  <h3 className="font-semibold text-sm">Previous Feedback</h3>
+                  <p className="text-muted-foreground">
+                    {selectedSubmission.feedback}
+                  </p>
+                </div>
+              )}
+              
+              {selectedSubmission.media?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-sm">Media</h3>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    {selectedSubmission.media.map((media, index) => (
+                      <div key={index} className="flex flex-col">
+                        {media.type === 'image' ? (
+                          <img 
+                            src={media.url} 
+                            alt={`Proposal media ${index + 1}`} 
+                            className="max-w-full h-auto rounded-md mb-2"
+                            style={{ maxHeight: '200px', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <a 
+                            href={media.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-blue-600 hover:underline"
+                          >
+                            Document {index + 1}
+                          </a>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          {media.type === 'image' ? 'Image' : 'Document'} {index + 1}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div>
                 <h3 className="font-semibold text-sm">Your Feedback</h3>
@@ -446,21 +532,23 @@ const CreatorChallenges = () => {
             </div>
           )}
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
+          <DialogFooter className="shrink-0 flex flex-col sm:flex-row gap-2 sm:justify-between px-6 py-4 border-t">
             <Button 
               variant="destructive"
               onClick={() => handleStatusChange(selectedSubmission?.id, "rejected")}
               className="w-full sm:w-auto"
+              disabled={isUpdating || selectedSubmission?.status === 'Rejected'}
             >
               <XCircle className="h-4 w-4 mr-2" />
-              Reject Submission
+              {isUpdating ? 'Processing...' : 'Reject Submission'}
             </Button>
             <Button 
               onClick={() => handleStatusChange(selectedSubmission?.id, "approved")}
               className="w-full sm:w-auto"
+              disabled={isUpdating || selectedSubmission?.status === 'Accepted'}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              Approve & Fund Project
+              {isUpdating ? 'Processing...' : 'Approve & Fund Project'}
             </Button>
           </DialogFooter>
         </DialogContent>

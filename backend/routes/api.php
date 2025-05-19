@@ -125,6 +125,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Proposals (direct access)
     Route::prefix('proposals')->group(function () {
+        Route::get('/', [ProposalController::class, 'index'])
+            ->name('api.proposals.index');
         Route::get('/{id}', [ProposalController::class, 'show'])
             ->name('api.proposals.show');
         Route::put('/{id}', [ProposalController::class, 'update'])
@@ -135,7 +137,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ->name('api.proposals.status.update');
     });
 
-    // ==================== ADMIN ROUTES (no middleware) ====================
+    // ==================== ADMIN ROUTES ====================
 
     // User Management
     Route::prefix('admin/users')->group(function () {
@@ -171,7 +173,15 @@ Route::middleware('auth:sanctum')->group(function () {
             ->name('api.admin.campaigns.status.update');
     });
 
-    // ==================== MODERATOR ROUTES (no middleware) ====================
+    // Admin Proposals Management
+    Route::prefix('admin/proposals')->group(function () {
+        Route::get('/', [ProposalController::class, 'index'])
+            ->name('api.admin.proposals.index');
+        Route::put('/{id}/status', [ProposalController::class, 'updateStatus'])
+            ->name('api.admin.proposals.status.update');
+    });
+
+    // ==================== MODERATOR ROUTES ====================
 
     Route::prefix('moderator/verifications')->group(function () {
         Route::get('/', [VerificationController::class, 'index'])
@@ -187,6 +197,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // ==================== VERIFIED USER ROUTES ====================
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    // Verified user specific routes can be added here
     Route::get('/protected', function () {
         return response()->json([
             'message' => 'You are verified and authenticated!',

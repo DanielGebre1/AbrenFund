@@ -350,15 +350,53 @@ export const ChallengeService = {
 
 // Proposal Service Methods
 export const ProposalService = {
-  async getProposals(campaignId, params = {}) {
+  /**
+   * Get proposals with optional filters
+   * @param {Object} params - Filter parameters
+   * @param {string|number} [params.campaignId] - Optional campaign ID filter
+   * @param {string} [params.userId] - Optional user ID filter ('current' for authenticated user)
+   * @param {string} [params.status] - Optional status filter
+   * @param {string} [params.search] - Optional search term
+   * @returns {Promise} API response
+   */
+  async getProposals(params = {}) {
     try {
-      const response = await api.get(`/api/campaigns/${campaignId}/proposals`, { params });
+      // Handle both campaign-specific and general proposals endpoint
+      const endpoint = params.campaignId 
+        ? `/api/campaigns/${params.campaignId}/proposals`
+        : '/api/proposals';
+      
+      // Remove campaignId from params to avoid duplicate in URL
+      const { campaignId, ...queryParams } = params;
+      
+      const response = await api.get(endpoint, { params: queryParams });
       return response.data;
     } catch (error) {
       throw error;
     }
   },
 
+  /**
+   * Get proposals for the current authenticated user
+   * @param {Object} params - Additional query parameters
+   * @returns {Promise} API response
+   */
+  async getMyProposals(params = {}) {
+    try {
+      const response = await api.get('/api/proposals', {
+        params: { ...params, user_id: 'current' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Get proposal details by ID
+   * @param {string|number} id - Proposal ID
+   * @returns {Promise} API response
+   */
   async getProposalDetails(id) {
     try {
       const response = await api.get(`/api/proposals/${id}`);
@@ -368,6 +406,12 @@ export const ProposalService = {
     }
   },
 
+  /**
+   * Create a new proposal for a challenge
+   * @param {string|number} campaignId - Challenge ID
+   * @param {Object|FormData} formData - Proposal data
+   * @returns {Promise} API response
+   */
   async createProposal(campaignId, formData) {
     try {
       const response = await api.post(`/api/campaigns/${campaignId}/proposals`, formData);
@@ -381,6 +425,12 @@ export const ProposalService = {
     }
   },
 
+  /**
+   * Update an existing proposal
+   * @param {string|number} id - Proposal ID
+   * @param {Object|FormData} data - Updated proposal data
+   * @returns {Promise} API response
+   */
   async updateProposal(id, data) {
     try {
       const response = await api.put(`/api/proposals/${id}`, data);
@@ -394,6 +444,11 @@ export const ProposalService = {
     }
   },
 
+  /**
+   * Delete a proposal
+   * @param {string|number} id - Proposal ID
+   * @returns {Promise} API response
+   */
   async deleteProposal(id) {
     try {
       const response = await api.delete(`/api/proposals/${id}`);
@@ -404,9 +459,50 @@ export const ProposalService = {
     }
   },
 
+  /**
+   * Update proposal status (admin/owner only)
+   * @param {string|number} id - Proposal ID
+   * @param {string} status - New status
+   * @param {string} [feedback] - Optional feedback
+   * @returns {Promise} API response
+   */
   async updateProposalStatus(id, status, feedback = '') {
     try {
       const response = await api.put(`/api/proposals/${id}/status`, {
+        status,
+        feedback
+      });
+      toast.success(`Proposal ${status} successfully`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Admin: Get all proposals with filters
+   * @param {Object} params - Filter parameters
+   * @returns {Promise} API response
+   */
+  async adminGetProposals(params = {}) {
+    try {
+      const response = await api.get('/api/admin/proposals', { params });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Admin: Update proposal status
+   * @param {string|number} id - Proposal ID
+   * @param {string} status - New status
+   * @param {string} [feedback] - Optional feedback
+   * @returns {Promise} API response
+   */
+  async adminUpdateProposalStatus(id, status, feedback = '') {
+    try {
+      const response = await api.put(`/api/admin/proposals/${id}/status`, {
         status,
         feedback
       });

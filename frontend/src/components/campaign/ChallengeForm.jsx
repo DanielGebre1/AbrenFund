@@ -31,6 +31,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import MediaUpload from './MediaUpload';
+import { toast } from 'sonner';
 
 const challengeFormSchema = z.object({
   title: z.string().min(5, {
@@ -49,12 +50,14 @@ const challengeFormSchema = z.object({
     (val) => !isNaN(Number(val)) && Number(val) > 0,
     { message: "Reward amount must be a positive number." }
   ),
-  submissionDeadline: z.string({
-    required_error: "Please select a submission deadline.",
-  }),
-  expectedDeliveryDate: z.string({
-    required_error: "Please select an expected delivery date.",
-  }),
+  submissionDeadline: z.string().refine(
+    (val) => !isNaN(Date.parse(val)) && new Date(val) > new Date(),
+    { message: "Submission deadline must be a valid future date." }
+  ),
+  expectedDeliveryDate: z.string().refine(
+    (val) => !isNaN(Date.parse(val)),
+    { message: "Expected delivery date must be a valid date." }
+  ),
   eligibilityCriteria: z.string().min(10, {
     message: "Eligibility criteria must be at least 10 characters.",
   }),
@@ -70,8 +73,18 @@ const challengeFormSchema = z.object({
   contactEmail: z.string().email({
     message: "Please provide a valid contact email.",
   }),
-  thumbnailImage: z.any().optional(),
-});
+  thumbnailImage: z.instanceof(File).optional(),
+}).refine(
+  (data) => {
+    const submissionDeadline = new Date(data.submissionDeadline);
+    const expectedDeliveryDate = new Date(data.expectedDeliveryDate);
+    return expectedDeliveryDate > submissionDeadline;
+  },
+  {
+    message: "Expected delivery date must be after submission deadline.",
+    path: ["expectedDeliveryDate"],
+  }
+);
 
 const ChallengeForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
   const form = useForm({
@@ -89,7 +102,7 @@ const ChallengeForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
       companyName: "",
       companyDescription: "",
       contactEmail: "",
-      thumbnailImage: null,
+      thumbnailImage: undefined,
     },
   });
 
@@ -323,7 +336,11 @@ const ChallengeForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
                     <FormControl>
                       <div className="flex items-center">
                         <Clock className="mr-2 h-4 w-4 opacity-50" />
-                        <Input type="date" {...field} />
+                        <Input
+                          type="date"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -340,7 +357,11 @@ const ChallengeForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
                     <FormControl>
                       <div className="flex items-center">
                         <Calendar className="mr-2 h-4 w-4 opacity-50" />
-                        <Input type="date" {...field} />
+                        <Input
+                          type="date"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -375,7 +396,7 @@ const ChallengeForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
                       type="file"
                       accept="image/*"
                       onChange={(e) => {
-                        field.onChange(e.target.files[0]);
+                        field.onChange(e.target.files?.[0]);
                       }}
                     />
                   </FormControl>

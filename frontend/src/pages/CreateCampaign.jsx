@@ -25,7 +25,6 @@ const CreateCampaign = () => {
       return;
     }
 
-    // Check both localStorage and user's verification status from auth store
     const checkVerificationStatus = async () => {
       try {
         const localVerified = localStorage.getItem('userVerified') === 'true';
@@ -33,12 +32,12 @@ const CreateCampaign = () => {
         
         setIsVerified(localVerified || serverVerified);
         
-        // Sync local storage with server status if needed
         if (serverVerified && !localVerified) {
           localStorage.setItem('userVerified', 'true');
         }
       } catch (error) {
         console.error('Error checking verification status:', error);
+        toast.error('Failed to verify user status. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -56,8 +55,8 @@ const CreateCampaign = () => {
           return;
         }
 
-        if (images.length === 0) {
-          toast.error('Please upload at least one image.');
+        if (images.length === 0 && !values.thumbnailImage) {
+          toast.error('Please upload at least one image or a thumbnail.');
           return;
         }
 
@@ -81,29 +80,35 @@ const CreateCampaign = () => {
 
         // Process form values
         Object.entries(values).forEach(([key, value]) => {
+          if (key === 'thumbnailImage') return; // Handle separately
+          
           const backendKey = fieldMappings[key] || key;
           
-          if (key === 'thumbnailImage') return;
-          
           if (['endDate', 'submissionDeadline', 'expectedDeliveryDate'].includes(key)) {
-            formData.append(backendKey, new Date(value).toISOString());
+            formData.append(backendKey, value ? new Date(value).toISOString() : '');
           } else if (key === 'category') {
             formData.append(backendKey, String(value));
+          } else if (['fundingGoal', 'rewardAmount'].includes(key)) {
+            formData.append(backendKey, Number(value).toString());
           } else {
-            formData.append(backendKey, value);
+            formData.append(backendKey, value || '');
           }
         });
 
-        // Handle files
-        if (values.thumbnailImage) {
+        // Set campaign type
+        formData.append('type', campaignType);
+
+        // Handle thumbnail image
+        if (values.thumbnailImage instanceof File) {
           formData.append('thumbnail_image', values.thumbnailImage);
         }
 
-        images.forEach((image) => {
-          formData.append('images[]', image.file);
+        // Handle additional images
+        images.forEach((image, index) => {
+          if (image.file instanceof File) {
+            formData.append(`images[${index}]`, image.file);
+          }
         });
-
-        formData.append('type', campaignType);
 
         const response = await CampaignService.createCampaign(formData);
         
@@ -116,7 +121,7 @@ const CreateCampaign = () => {
           if (error.response.status === 422) {
             const errors = error.response.data?.errors || {};
             Object.entries(errors).forEach(([field, messages]) => {
-              const readableField = field.replace(/_/g, ' ');
+              const readableField = field.replace(/_/g, ' ').replace(/\[\d+\]/, '');
               messages.forEach(msg => toast.error(`${readableField}: ${msg}`));
             });
           } else if (error.response.status === 403) {

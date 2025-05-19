@@ -34,8 +34,13 @@ class CampaignController extends Controller
                 $query->where('type', $request->type);
             }
 
+            // Handle user_id filter - support 'current' keyword for current user
             if ($request->has('user_id')) {
-                $query->where('user_id', $request->user_id);
+                if ($request->user_id === 'current') {
+                    $query->where('user_id', Auth::id());
+                } else {
+                    $query->where('user_id', $request->user_id);
+                }
             }
 
             if ($request->has('search')) {
@@ -268,15 +273,23 @@ class CampaignController extends Controller
         }
     }
 
-
-     /**
+    /**
      * Get proposals for a specific challenge
      */
     public function getChallengeProposals($id)
     {
         try {
+            $campaign = Campaign::findOrFail($id);
+            
+            // Verify the current user owns the campaign or is admin
+            if (Auth::id() !== $campaign->user_id && !Auth::user()->isAdmin()) {
+                return response()->json([
+                    'message' => 'Unauthorized to view these proposals'
+                ], 403);
+            }
+
             $proposals = Proposal::with(['user:id,name', 'media'])
-                ->where('challenge_id', $id)
+                ->where('campaign_id', $id)
                 ->latest()
                 ->get();
 
@@ -296,49 +309,6 @@ class CampaignController extends Controller
             Log::error('Failed to retrieve proposals: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to retrieve proposals',
-                'error' => 'Server error occurred'
-            ], 500);
-        }
-    }
-
-    /**
-     * Update proposal status (for challenge owners/admins)
-     */
-    public function updateProposalStatus(Request $request, $id)
-    {
-        try {
-            $proposal = Proposal::findOrFail($id);
-            $user = Auth::user();
-
-            // Verify user has permission to update status
-            if (!$user->isAdmin() && $user->id !== $proposal->challenge->user_id) {
-                return response()->json([
-                    'message' => 'Unauthorized to update proposal status'
-                ], 403);
-            }
-
-            $request->validate([
-                'status' => 'required|in:approved,rejected,pending',
-                'feedback' => 'nullable|string|max:1000'
-            ]);
-
-            $proposal->update([
-                'status' => $request->status,
-                'feedback' => $request->feedback
-            ]);
-
-            return response()->json([
-                'message' => 'Proposal status updated successfully',
-                'data' => $proposal
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Failed to update proposal status: ' . $e->getMessage(), [
-                'proposal_id' => $id,
-                'error' => $e
-            ]);
-            return response()->json([
-                'message' => 'Failed to update proposal status',
                 'error' => 'Server error occurred'
             ], 500);
         }

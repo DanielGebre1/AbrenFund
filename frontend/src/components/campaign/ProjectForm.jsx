@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import MediaUpload from './MediaUpload';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const projectFormSchema = z.object({
   title: z.string().min(5, {
@@ -37,9 +37,10 @@ const projectFormSchema = z.object({
     (val) => !isNaN(Number(val)) && Number(val) > 0,
     { message: "Funding goal must be a positive number." }
   ),
-  endDate: z.string().refine(val => !isNaN(Date.parse(val)), {
-    message: "Please select a valid end date.",
-  }),
+  endDate: z.string().refine(
+    (val) => !isNaN(Date.parse(val)) && new Date(val) > new Date(),
+    { message: "End date must be a valid future date." }
+  ),
   fundingType: z.enum(["all_or_nothing", "keep_what_you_raise"]),
   thumbnailImage: z.instanceof(File).optional(),
 });
@@ -59,41 +60,10 @@ const ProjectForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
     },
   });
 
-  const handleSubmit = async (values) => {
-     try {
-    const formattedValues = {
-      ...values,
-      fundingGoal: Number(values.fundingGoal),
-      endDate: new Date(values.endDate).toISOString(),
-    };
-
-    await onSubmit(formattedValues);
-  } catch (error) {
-    console.error('Form submission error:', error);
-    
-    // Handle different error structures
-    if (error?.response?.data?.errors) {
-      // Axios-style error with validation messages
-      const errors = error.response.data.errors;
-      Object.values(errors).flat().forEach(msg => toast.error(msg));
-    } else if (error?.data?.errors) {
-      // Alternative error structure
-      const errors = error.data.errors;
-      Object.values(errors).flat().forEach(msg => toast.error(msg));
-    } else if (error?.message) {
-      // Generic error message
-      toast.error(error.message);
-    } else {
-      toast.error('Failed to submit form. Please try again.');
-    }
-  }
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-md">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 p-6">
-          
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 p-6">
           {/* Basic Information */}
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
@@ -229,7 +199,11 @@ const ProjectForm = ({ onSubmit, images, onImageUpload, onRemoveImage }) => {
                     <FormControl>
                       <div className="flex items-center">
                         <Calendar className="mr-2 h-4 w-4 opacity-50" />
-                        <Input type="date" {...field} />
+                        <Input
+                          type="date"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
                       </div>
                     </FormControl>
                     <FormDescription>
