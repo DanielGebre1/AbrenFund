@@ -112,11 +112,11 @@ export const DashboardSidebar = ({ type }) => {
         url: "/review",
         icon: FileText,
       },
-      {
-        title: "Review Proposals",
-        url: "/proposals",
-        icon: Briefcase,
-      },
+      // {
+      //   title: "Review Proposals",
+      //   url: "/proposals",
+      //   icon: Briefcase,
+      // },
       {
         title: "Challenges",
         url: "/challenges",

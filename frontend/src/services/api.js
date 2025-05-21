@@ -11,20 +11,17 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use(async (config) => {
-  // Add authorization token if exists
   const token = localStorage.getItem('auth-token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Set Content-Type to multipart/form-data for FormData requests
   if (config.data instanceof FormData) {
     config.headers['Content-Type'] = 'multipart/form-data';
   } else {
     config.headers['Content-Type'] = 'application/json';
   }
 
-  // Only get CSRF cookie for non-GET requests
   if (config.method !== 'get') {
     try {
       await axios.get(`${config.baseURL}/sanctum/csrf-cookie`, {
@@ -70,7 +67,7 @@ api.interceptors.response.use(
           break;
 
         case 422:
-          // Validation errors are handled by the calling component
+          return Promise.reject(error); // Let components handle validation errors
           break;
 
         case 500:
@@ -252,6 +249,37 @@ export const ModeratorVerificationService = {
   }
 };
 
+// Moderator Campaign Service Methods
+export const ModeratorCampaignService = {
+  async getCampaigns(params = {}) {
+    try {
+      const response = await api.get('/api/moderator/campaigns', { params });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async getCampaignDetails(id) {
+    try {
+      const response = await api.get(`/api/moderator/campaigns/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async reviewCampaign(id, reviewData) {
+    try {
+      const response = await api.put(`/api/moderator/campaigns/${id}/review`, reviewData);
+      toast.success(`Campaign ${reviewData.decision} successfully`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
 // Campaign Service Methods
 export const CampaignService = {
   async getCampaigns(params = {}) {
@@ -319,7 +347,6 @@ export const CampaignService = {
 export const ChallengeService = {
   async getChallenges(params = {}) {
     try {
-      // Add type filter to only get challenges
       const response = await api.get('/api/campaigns', { 
         params: { ...params, type: 'challenge' } 
       });
@@ -350,23 +377,12 @@ export const ChallengeService = {
 
 // Proposal Service Methods
 export const ProposalService = {
-  /**
-   * Get proposals with optional filters
-   * @param {Object} params - Filter parameters
-   * @param {string|number} [params.campaignId] - Optional campaign ID filter
-   * @param {string} [params.userId] - Optional user ID filter ('current' for authenticated user)
-   * @param {string} [params.status] - Optional status filter
-   * @param {string} [params.search] - Optional search term
-   * @returns {Promise} API response
-   */
   async getProposals(params = {}) {
     try {
-      // Handle both campaign-specific and general proposals endpoint
       const endpoint = params.campaignId 
         ? `/api/campaigns/${params.campaignId}/proposals`
         : '/api/proposals';
       
-      // Remove campaignId from params to avoid duplicate in URL
       const { campaignId, ...queryParams } = params;
       
       const response = await api.get(endpoint, { params: queryParams });
@@ -376,11 +392,6 @@ export const ProposalService = {
     }
   },
 
-  /**
-   * Get proposals for the current authenticated user
-   * @param {Object} params - Additional query parameters
-   * @returns {Promise} API response
-   */
   async getMyProposals(params = {}) {
     try {
       const response = await api.get('/api/proposals', {
@@ -392,11 +403,6 @@ export const ProposalService = {
     }
   },
 
-  /**
-   * Get proposal details by ID
-   * @param {string|number} id - Proposal ID
-   * @returns {Promise} API response
-   */
   async getProposalDetails(id) {
     try {
       const response = await api.get(`/api/proposals/${id}`);
@@ -406,12 +412,6 @@ export const ProposalService = {
     }
   },
 
-  /**
-   * Create a new proposal for a challenge
-   * @param {string|number} campaignId - Challenge ID
-   * @param {Object|FormData} formData - Proposal data
-   * @returns {Promise} API response
-   */
   async createProposal(campaignId, formData) {
     try {
       const response = await api.post(`/api/campaigns/${campaignId}/proposals`, formData);
@@ -425,12 +425,6 @@ export const ProposalService = {
     }
   },
 
-  /**
-   * Update an existing proposal
-   * @param {string|number} id - Proposal ID
-   * @param {Object|FormData} data - Updated proposal data
-   * @returns {Promise} API response
-   */
   async updateProposal(id, data) {
     try {
       const response = await api.put(`/api/proposals/${id}`, data);
@@ -444,11 +438,6 @@ export const ProposalService = {
     }
   },
 
-  /**
-   * Delete a proposal
-   * @param {string|number} id - Proposal ID
-   * @returns {Promise} API response
-   */
   async deleteProposal(id) {
     try {
       const response = await api.delete(`/api/proposals/${id}`);
@@ -459,13 +448,6 @@ export const ProposalService = {
     }
   },
 
-  /**
-   * Update proposal status (admin/owner only)
-   * @param {string|number} id - Proposal ID
-   * @param {string} status - New status
-   * @param {string} [feedback] - Optional feedback
-   * @returns {Promise} API response
-   */
   async updateProposalStatus(id, status, feedback = '') {
     try {
       const response = await api.put(`/api/proposals/${id}/status`, {
@@ -479,11 +461,6 @@ export const ProposalService = {
     }
   },
 
-  /**
-   * Admin: Get all proposals with filters
-   * @param {Object} params - Filter parameters
-   * @returns {Promise} API response
-   */
   async adminGetProposals(params = {}) {
     try {
       const response = await api.get('/api/admin/proposals', { params });
@@ -493,13 +470,6 @@ export const ProposalService = {
     }
   },
 
-  /**
-   * Admin: Update proposal status
-   * @param {string|number} id - Proposal ID
-   * @param {string} status - New status
-   * @param {string} [feedback] - Optional feedback
-   * @returns {Promise} API response
-   */
   async adminUpdateProposalStatus(id, status, feedback = '') {
     try {
       const response = await api.put(`/api/admin/proposals/${id}/status`, {

@@ -18,6 +18,7 @@ class UpdateCampaignRequest extends FormRequest
             'short_description' => 'sometimes|string|min:10|max:255',
             'full_description' => 'sometimes|string|min:50',
             'category' => 'sometimes|string|max:255',
+            'status' => 'required|in:active,completed,suspended',
             'thumbnail_image' => 'sometimes|image|max:5120',
             'images' => 'sometimes|array',
             'images.*' => 'image|max:5120',
